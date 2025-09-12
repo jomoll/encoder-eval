@@ -149,8 +149,23 @@ def custom_collate_fn(batch):
         'study_id': study_ids
     }
 
-def extract_embeddings(model, processor, dataset, batch_size=32, device='cuda'):
-    """Extract CLIP image embeddings for the entire dataset"""
+def load_model_and_processor(model_type, model_name, device):
+    """Load model and processor based on type"""
+    if model_type.lower() == 'clip':
+        # CLIP models (like MedSigLIP)
+        model = AutoModel.from_pretrained(model_name).to(device)
+        processor = AutoProcessor.from_pretrained(model_name)
+        return model, processor
+    elif model_type.lower() == 'dino':
+        # DINO models
+        model = AutoModel.from_pretrained(model_name).to(device)
+        processor = AutoProcessor.from_pretrained(model_name)
+        return model, processor
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}")
+
+def extract_embeddings_universal(model, processor, dataset, model_type, batch_size=32, device='cuda'):
+    """Universal embedding extraction for different model types"""
     model.eval()
     embeddings = []
     labels = []
@@ -160,20 +175,28 @@ def extract_embeddings(model, processor, dataset, batch_size=32, device='cuda'):
         dataset, 
         batch_size=batch_size, 
         shuffle=False, 
-        num_workers=0,  # Set num_workers=0 to avoid multiprocessing issues with PIL
-        collate_fn=custom_collate_fn  # Use custom collate function
+        num_workers=0,
+        collate_fn=custom_collate_fn
     )
     
     with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Extracting embeddings"):
-            # Process images with CLIP processor
-            batch_images = batch['image']  # Already a list of PIL Images
-            inputs = processor(images=batch_images, return_tensors="pt", padding=True)
-            inputs = {k: v.to(device) for k, v in inputs.items()}
+        for batch in tqdm(dataloader, desc=f"Extracting {model_type.upper()} embeddings"):
+            batch_images = batch['image']
             
-            # Get image embeddings
-            image_features = model.get_image_features(**inputs)
-            image_features = image_features / image_features.norm(dim=-1, keepdim=True)  # Normalize
+            if model_type.lower() == 'clip':
+                # CLIP processing
+                inputs = processor(images=batch_images, return_tensors="pt", padding=True)
+                inputs = {k: v.to(device) for k, v in inputs.items()}
+                image_features = model.get_image_features(**inputs)
+            elif model_type.lower() == 'dino':
+                # DINO processing
+                inputs = processor(images=batch_images, return_tensors="pt")
+                inputs = {k: v.to(device) for k, v in inputs.items()}
+                outputs = model(**inputs)
+                image_features = outputs.last_hidden_state[:, 0, :]  # CLS token
+            
+            # Normalize embeddings
+            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
             
             embeddings.append(image_features.cpu())
             labels.append(batch['labels'])
@@ -184,10 +207,10 @@ def extract_embeddings(model, processor, dataset, batch_size=32, device='cuda'):
     
     return embeddings, labels, study_ids
 
-def extract_embeddings_multilayer(model, processor, dataset, batch_size=32, device='cuda', layers=None):
-    """Extract CLIP image embeddings from multiple layers"""
+def extract_embeddings_multilayer_universal(model, processor, dataset, model_type, batch_size=32, device='cuda', layers=None):
+    """Universal multi-layer embedding extraction"""
     if layers is None:
-        layers = [-4, -3, -2, -1]  # Last 4 layers
+        layers = list(range(-12, 0)) + [0]  # Default to 12 layers + final
     
     model.eval()
     all_embeddings = {f'layer_{layer}': [] for layer in layers}
@@ -207,59 +230,80 @@ def extract_embeddings_multilayer(model, processor, dataset, batch_size=32, devi
     
     def hook_fn(layer_idx):
         def hook(module, input, output):
-             # Handle case where output is a tuple (typical for transformer layers)
             if isinstance(output, tuple):
-                intermediate_outputs[layer_idx] = output[0]  # First element is usually the main output
+                intermediate_outputs[layer_idx] = output[0]
             else:
                 intermediate_outputs[layer_idx] = output
         return hook
     
     # Register hooks for specified layers
     hooks = []
-    vision_model = model.vision_model
+    
+    # Get transformer layers based on model type
+    if model_type.lower() == 'clip':
+        transformer_layers = model.vision_model.encoder.layers
+    elif model_type.lower() == 'dino':
+        if hasattr(model, 'encoder') and hasattr(model.encoder, 'layer'):
+            transformer_layers = model.encoder.layer
+        elif hasattr(model, 'vit') and hasattr(model.vit.encoder, 'layer'):
+            transformer_layers = model.vit.encoder.layer
+        else:
+            print("Warning: Could not find transformer layers in DINO model")
+            transformer_layers = []
     
     for layer_idx in layers:
-        if layer_idx == -1:
-            # Final layer (after pooling)
+        if layer_idx == 0:  # Final layer
             continue
         else:
-            # Intermediate transformer layers
-            layer = vision_model.encoder.layers[layer_idx]
-            hook = layer.register_forward_hook(hook_fn(layer_idx))
-            hooks.append(hook)
+            actual_layer_idx = layer_idx % len(transformer_layers)
+            if actual_layer_idx < len(transformer_layers):
+                layer = transformer_layers[actual_layer_idx]
+                hook = layer.register_forward_hook(hook_fn(layer_idx))
+                hooks.append(hook)
     
     with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Extracting multi-layer embeddings"):
+        for batch in tqdm(dataloader, desc=f"Extracting multi-layer {model_type.upper()} embeddings"):
             batch_images = batch['image']
-            inputs = processor(images=batch_images, return_tensors="pt", padding=True)
-            inputs = {k: v.to(device) for k, v in inputs.items()}
             
             # Clear previous outputs
             intermediate_outputs.clear()
             
-            # Forward pass to get final embeddings and trigger hooks
-            vision_outputs = model.vision_model(**inputs)
-            
-            # Get final layer embedding (standard CLIP output)
-            if -1 in layers:
-                final_embeddings = vision_outputs.pooler_output
-                final_embeddings = final_embeddings / final_embeddings.norm(dim=-1, keepdim=True)
-                all_embeddings['layer_-1'].append(final_embeddings.cpu())
+            if model_type.lower() == 'clip':
+                # CLIP processing
+                inputs = processor(images=batch_images, return_tensors="pt", padding=True)
+                inputs = {k: v.to(device) for k, v in inputs.items()}
+                
+                # Forward pass to trigger hooks
+                vision_outputs = model.vision_model(**inputs)
+                
+                # Get final layer embedding
+                if 0 in layers:
+                    final_embeddings = vision_outputs.pooler_output
+                    final_embeddings = final_embeddings / final_embeddings.norm(dim=-1, keepdim=True)
+                    all_embeddings['layer_0'].append(final_embeddings.cpu())
+                    
+            elif model_type.lower() == 'dino':
+                # DINO processing
+                inputs = processor(images=batch_images, return_tensors="pt")
+                inputs = {k: v.to(device) for k, v in inputs.items()}
+                
+                # Forward pass to trigger hooks
+                outputs = model(**inputs)
+                
+                # Get final layer embedding
+                if 0 in layers:
+                    final_embeddings = outputs.last_hidden_state[:, 0, :]  # CLS token
+                    final_embeddings = final_embeddings / final_embeddings.norm(dim=-1, keepdim=True)
+                    all_embeddings['layer_0'].append(final_embeddings.cpu())
             
             # Process intermediate layer outputs
             for layer_idx in layers:
-                if layer_idx != -1 and layer_idx in intermediate_outputs:
-                    # Get the output from the transformer layer
+                if layer_idx != 0 and layer_idx in intermediate_outputs:
                     layer_output = intermediate_outputs[layer_idx]
                     
-                    # For transformer layers, we get (batch_size, seq_len, hidden_dim)
-                    # Take the CLS token (first token) or average pool
+                    # Extract embeddings from layer output
                     if layer_output.dim() == 3:
-                        # Option 1: Use CLS token (first token)
-                        layer_embeddings = layer_output[:, 0, :]
-                        
-                        # Option 2: Average pooling (uncomment to use instead)
-                        # layer_embeddings = layer_output.mean(dim=1)
+                        layer_embeddings = layer_output[:, 0, :]  # CLS token
                     else:
                         layer_embeddings = layer_output
                     
@@ -277,74 +321,12 @@ def extract_embeddings_multilayer(model, processor, dataset, batch_size=32, devi
     # Concatenate all embeddings
     final_embeddings = {}
     for layer_key, emb_list in all_embeddings.items():
-        if emb_list:  # Only if we have embeddings for this layer
+        if emb_list:
             final_embeddings[layer_key] = torch.cat(emb_list, dim=0)
     
     labels = torch.cat(labels, dim=0)
     
     return final_embeddings, labels, study_ids
-
-def train_classifier(embeddings, labels, num_epochs=100, lr=0.01, device='cuda'):
-    """Train linear classifier on embeddings"""
-    num_classes = labels.shape[1]
-    input_dim = embeddings.shape[1]
-    
-    # Check class distributions
-    print("Class distributions:")
-    for i in range(num_classes):
-        pos_ratio = labels[:, i].float().mean().item()
-        print(f"  Class {i}: {pos_ratio:.3f} positive")
-    
-    classifier = MultiLabelClassifier(input_dim, num_classes).to(device)
-    
-    # Use weighted BCE loss to handle class imbalance
-    pos_weights = []
-    for i in range(num_classes):
-        pos_count = labels[:, i].sum().item()
-        neg_count = len(labels) - pos_count
-        if pos_count > 0:
-            pos_weight = neg_count / pos_count
-        else:
-            pos_weight = 1.0
-        pos_weights.append(pos_weight)
-    
-    pos_weights = torch.tensor(pos_weights).to(device)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
-    
-    # Modify classifier to not use sigmoid (BCEWithLogitsLoss includes it)
-    classifier = nn.Sequential(
-        nn.Dropout(0.1),
-        nn.Linear(input_dim, num_classes)
-    ).to(device)
-    
-    optimizer = torch.optim.Adam(classifier.parameters(), lr=lr, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=10)
-    
-    embeddings = embeddings.to(device)
-    labels = labels.to(device)
-    
-    classifier.train()
-    for epoch in range(num_epochs):
-        optimizer.zero_grad()
-        outputs = classifier(embeddings)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        scheduler.step(loss)
-        
-        if (epoch + 1) % 20 == 0:
-            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
-    
-    # Wrap in sigmoid for evaluation
-    class SigmoidWrapper(nn.Module):
-        def __init__(self, model):
-            super().__init__()
-            self.model = model
-        
-        def forward(self, x):
-            return torch.sigmoid(self.model(x))
-    
-    return SigmoidWrapper(classifier)
 
 def train_stronger_classifier(embeddings, labels, num_epochs=150, lr=0.001, device='cuda'):
     """Train stronger MLP classifier"""
@@ -486,63 +468,6 @@ def train_stronger_classifier_multilayer(embeddings_dict, labels, num_epochs=150
         results[layer_name] = SigmoidWrapper(classifier)
     
     return results
-
-def train_classifier_multilayer(embeddings_dict, labels, num_epochs=100, lr=0.01, device='cuda'):
-    """Train classifiers on multiple layer embeddings"""
-    results = {}
-    
-    for layer_name, embeddings in embeddings_dict.items():
-        print(f"\nTraining classifier for {layer_name}...")
-        print(f"Embedding shape: {embeddings.shape}")
-        
-        num_classes = labels.shape[1]
-        input_dim = embeddings.shape[1]
-        
-        # Create classifier
-        classifier = nn.Sequential(
-            nn.Dropout(0.1),
-            nn.Linear(input_dim, num_classes)
-        ).to(device)
-        
-        # Setup training
-        pos_weights = []
-        for i in range(num_classes):
-            pos_count = labels[:, i].sum().item()
-            neg_count = len(labels) - pos_count
-            pos_weight = neg_count / pos_count if pos_count > 0 else 1.0
-            pos_weights.append(pos_weight)
-        
-        pos_weights = torch.tensor(pos_weights).to(device)
-        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
-        optimizer = torch.optim.Adam(classifier.parameters(), lr=lr, weight_decay=1e-4)
-        
-        embeddings_gpu = embeddings.to(device)
-        labels_gpu = labels.to(device)
-        
-        # Train
-        classifier.train()
-        for epoch in range(num_epochs):
-            optimizer.zero_grad()
-            outputs = classifier(embeddings_gpu)
-            loss = criterion(outputs, labels_gpu)
-            loss.backward()
-            optimizer.step()
-            
-            if (epoch + 1) % 50 == 0:
-                print(f"  Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}")
-        
-        # Wrap with sigmoid
-        class SigmoidWrapper(nn.Module):
-            def __init__(self, model):
-                super().__init__()
-                self.model = model
-            def forward(self, x):
-                return torch.sigmoid(self.model(x))
-        
-        results[layer_name] = SigmoidWrapper(classifier)
-    
-    return results
-
 def evaluate_classifier(classifier, embeddings, labels, label_names, device='cuda', debug=False):
     """Evaluate classifier performance"""
     classifier.eval()
@@ -632,6 +557,7 @@ def evaluate_multilayer_classifiers(classifiers_dict, embeddings_dict, labels, l
         print(f"  Average F1: {avg_f1:.3f}, Average AUC: {avg_auc:.3f}")
     
     return layer_results
+
 
 def evaluate_correlation_baseline(embeddings_dict, labels, label_names):
     """Evaluate correlation-based baselines without training classifiers"""
@@ -840,12 +766,33 @@ def compare_methods(trained_results, correlation_results, threshold_results, lab
     return comparison_data
 
 def main():
-    # Configuration
+    # ===== CONFIGURATION =====
+    # MODEL CONFIGURATION - Change these to switch between models
+    MODEL_TYPE = 'dino'  # Options: 'clip', 'dino'
+    
+    # Model options for each type:
+    if MODEL_TYPE.lower() == 'clip':
+        # CLIP/SigLIP models
+        # MODEL_NAME = "google/medsiglip-448"  # Medical CLIP
+        # MODEL_NAME = "openai/clip-vit-base-patch32"  # Original CLIP
+        MODEL_NAME = "openai/clip-vit-large-patch14"  # Large CLIP
+        NUM_LAYERS = 12  # Typical for CLIP models
+    elif MODEL_TYPE.lower() == 'dino':
+        # DINO models
+        # MODEL_NAME = "facebook/dinov2-base"  # DINOv2
+        # MODEL_NAME = "facebook/dinov3-vitl16-pretrain-lvd1689m"
+        # MODEL_NAME = "facebook/dino-vitb16"  # Original DINO
+        MODEL_NAME = "facebook/dinov2-large"  # Large DINOv2
+        NUM_LAYERS = 12  # Base models, use 24 for large
+    
+    # Data configuration
     csv_path = "../mimic-cxr-jpg/2.1.0/mimic-cxr-2.1.0-test-set-labeled.csv"
     base_path = "../mimic-cxr-jpg/2.1.0"
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
     print(f"Using device: {device}")
+    print(f"Model type: {MODEL_TYPE.upper()}")
+    print(f"Model name: {MODEL_NAME}")
     
     # Load data
     print("Loading dataset...")
@@ -855,10 +802,9 @@ def main():
     print(f"Dataset shape: {df.shape}")
     print(f"Number of studies: {len(df)}")
     
-    # Load CLIP model
-    print("Loading CLIP model...")
-    model = AutoModel.from_pretrained("google/medsiglip-448").to(device)
-    processor = AutoProcessor.from_pretrained("google/medsiglip-448")
+    # Load model
+    print(f"Loading {MODEL_TYPE.upper()} model...")
+    model, processor = load_model_and_processor(MODEL_TYPE, MODEL_NAME, device)
     
     # Freeze model parameters
     for param in model.parameters():
@@ -870,23 +816,23 @@ def main():
     
     print(f"Label columns: {label_names}")
     
-    # Extract embeddings from ALL 12 layers
-    print("Extracting multi-layer CLIP embeddings from all 12 layers...")
-    layers_to_extract = list(range(-12, 0)) + [0]  # [-12, -11, ..., -1] + [0 for final]
+    # Extract embeddings from all layers
+    print(f"Extracting multi-layer {MODEL_TYPE.upper()} embeddings from {NUM_LAYERS} layers...")
+    layers_to_extract = list(range(-NUM_LAYERS, 0)) + [0]  # All layers + final
     
     print(f"Extracting from layers: {layers_to_extract}")
     
-    embeddings_dict, labels, study_ids = extract_embeddings_multilayer(
-        model, processor, dataset, device=device, layers=layers_to_extract
+    embeddings_dict, labels, study_ids = extract_embeddings_multilayer_universal(
+        model, processor, dataset, MODEL_TYPE, device=device, layers=layers_to_extract
     )
     
-    print("Embedding shapes:")
+    print(f"{MODEL_TYPE.upper()} Embedding shapes:")
     for layer_name, emb in embeddings_dict.items():
         print(f"  {layer_name}: {emb.shape}")
     
     # ===== CORRELATION BASELINES (FULL DATASET - NO TRAINING) =====
     print("\n" + "="*100)
-    print("RUNNING CORRELATION BASELINES ON FULL DATASET")
+    print(f"RUNNING CORRELATION BASELINES ON FULL DATASET ({MODEL_TYPE.upper()})")
     print("="*100)
     
     # Use FULL dataset for correlation analysis since no training is involved
@@ -916,16 +862,16 @@ def main():
     
     # ===== TRAINED CLASSIFIERS =====
     print("\n" + "="*100)
-    print("TRAINING SUPERVISED CLASSIFIERS")
+    print(f"TRAINING SUPERVISED CLASSIFIERS ({MODEL_TYPE.upper()})")
     print("="*100)
     
     # Train classifiers for each layer
-    print("Training STRONGER classifiers for each layer...")
+    print(f"Training STRONGER classifiers for each {MODEL_TYPE.upper()} layer...")
     train_embeddings_dict = {k: v['train'] for k, v in split_embeddings.items()}
     classifiers = train_stronger_classifier_multilayer(train_embeddings_dict, train_labels, device=device)
     
     # Evaluate all classifiers
-    print("\nEvaluating trained classifiers...")
+    print(f"\nEvaluating trained {MODEL_TYPE.upper()} classifiers...")
     val_embeddings_dict = {k: v['val'] for k, v in split_embeddings.items()}
     trained_results = evaluate_multilayer_classifiers(
         classifiers, val_embeddings_dict, val_labels, label_names, device
@@ -936,7 +882,7 @@ def main():
     
     # 1. Display Correlation Results
     print("\n" + "="*160)
-    print("CORRELATION BASELINE RESULTS (FULL DATASET)")
+    print(f"CORRELATION BASELINE RESULTS (FULL DATASET - {MODEL_TYPE.upper()})")
     print("="*160)
     print(f"{'Layer':<12} {'Max Pearson':<12} {'Mean Pearson':<13} {'Top-10 Pearson':<15} {'Max Spearman':<13} {'Mean Spearman':<14} {'Top-10 Spearman':<15}")
     print("-"*160)
@@ -968,7 +914,7 @@ def main():
     
     # 2. Display Threshold Baseline Results
     print("\n" + "="*140)
-    print("THRESHOLD BASELINE RESULTS (FULL DATASET)")
+    print(f"THRESHOLD BASELINE RESULTS (FULL DATASET - {MODEL_TYPE.upper()})")
     print("="*140)
     print(f"{'Layer':<12} {'Avg F1':<8} {'Avg AUC':<8} {'Avg Precision':<12} {'Avg Recall':<10} {'Std Accuracy':<12} {'Bal Accuracy':<12}")
     print("-"*140)
@@ -991,7 +937,7 @@ def main():
     
     # 3. Display Trained Classifier Results
     print("\n" + "="*140)
-    print("TRAINED CLASSIFIER RESULTS (VALIDATION SET)")
+    print(f"TRAINED CLASSIFIER RESULTS (VALIDATION SET - {MODEL_TYPE.upper()})")
     print("="*140)
     print(f"{'Layer':<12} {'Avg F1':<8} {'Avg AUC':<8} {'Avg Precision':<12} {'Avg Recall':<10} {'Std Accuracy':<12} {'Bal Accuracy':<12}")
     print("-"*140)
@@ -1046,7 +992,7 @@ def main():
             best_trained_layer = layer_key.replace('layer_', '')
     
     print("\n" + "="*120)
-    print("BEST PERFORMING LAYERS BY METHOD:")
+    print(f"BEST PERFORMING LAYERS BY METHOD ({MODEL_TYPE.upper()}):")
     print(f"Best Pearson Correlation: Layer {best_corr_layer_pearson} (Max Pearson: {best_corr_score_pearson:.4f})")
     print(f"Best Spearman Correlation: Layer {best_corr_layer_spearman} (Max Spearman: {best_corr_score_spearman:.4f})")
     print(f"Best Threshold Baseline: Layer {best_threshold_layer} (F1: {best_threshold_f1:.3f})")
@@ -1057,6 +1003,11 @@ def main():
     import json
     
     all_results = {
+        'model_info': {
+            'model_type': MODEL_TYPE.lower(),
+            'model_name': MODEL_NAME,
+            'num_layers': NUM_LAYERS
+        },
         'correlation_baselines': {},
         'threshold_baselines': {},
         'trained_classifiers': {},
@@ -1138,17 +1089,23 @@ def main():
             json_summary[layer_key] = json_metrics
         all_results['summary'][summary_key] = json_summary
     
+    # Save with model-specific filename
+    # Clean up model name for filename
+    model_name_clean = MODEL_NAME.replace("/", "_").replace("-", "_").replace(".", "_")
+    filename = f'comprehensive_layer_analysis_{MODEL_TYPE.lower()}_{model_name_clean}.json'
+    
     try:
-        with open('comprehensive_layer_analysis.json', 'w') as f:
+        with open(filename, 'w') as f:
             json.dump(all_results, f, indent=2)
-        print(f"\nComprehensive results saved to 'comprehensive_layer_analysis.json'")
+        print(f"\nComprehensive results saved to '{filename}'")
     except Exception as e:
         print(f"Error saving JSON: {e}")
         # Save as pickle as backup
         import pickle
-        with open('comprehensive_layer_analysis.pkl', 'wb') as f:
+        pickle_filename = filename.replace('.json', '.pkl')
+        with open(pickle_filename, 'wb') as f:
             pickle.dump(all_results, f)
-        print("Results saved as pickle backup: 'comprehensive_layer_analysis.pkl'")
+        print(f"Results saved as pickle backup: '{pickle_filename}'")
 
 if __name__ == "__main__":
     main()
