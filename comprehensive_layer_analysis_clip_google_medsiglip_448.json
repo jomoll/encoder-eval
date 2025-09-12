@@ -1,0 +1,4123 @@
+{
+  "model_info": {
+    "model_type": "clip",
+    "model_name": "google/medsiglip-448",
+    "num_layers": 12
+  },
+  "correlation_baselines": {
+    "layer_-12": {
+      "No Finding": {
+        "max_pearson": 0.2034277617931366,
+        "mean_pearson": 0.0630829930305481,
+        "max_spearman": 0.1867658212789729,
+        "mean_spearman": 0.06350908948043353,
+        "top_k_pearson": 0.1911003589630127,
+        "top_k_spearman": 0.17537299795274156
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.14134597778320312,
+        "mean_pearson": 0.033844318240880966,
+        "max_spearman": 0.1527626137207823,
+        "mean_spearman": 0.03455594662653141,
+        "top_k_pearson": 0.12789691984653473,
+        "top_k_spearman": 0.13136286931946398
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.12944220006465912,
+        "mean_pearson": 0.031990259885787964,
+        "max_spearman": 0.12017565173485059,
+        "mean_spearman": 0.031236572293535103,
+        "top_k_pearson": 0.1135108470916748,
+        "top_k_spearman": 0.10989090975546764
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.1687738299369812,
+        "mean_pearson": 0.05373474583029747,
+        "max_spearman": 0.16841382914799194,
+        "mean_spearman": 0.054354189942627786,
+        "top_k_pearson": 0.1583322435617447,
+        "top_k_spearman": 0.15949438959935014
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.13411422073841095,
+        "mean_pearson": 0.03298834338784218,
+        "max_spearman": 0.14772083878948702,
+        "mean_spearman": 0.03317479520775947,
+        "top_k_pearson": 0.11361221969127655,
+        "top_k_spearman": 0.11612680036116281
+      },
+      "Edema": {
+        "max_pearson": 0.2192867249250412,
+        "mean_pearson": 0.06271068006753922,
+        "max_spearman": 0.23538255776769168,
+        "mean_spearman": 0.06379334291656029,
+        "top_k_pearson": 0.1952204406261444,
+        "top_k_spearman": 0.20144760492702116
+      },
+      "Consolidation": {
+        "max_pearson": 0.13520722091197968,
+        "mean_pearson": 0.03648262098431587,
+        "max_spearman": 0.13661209058204413,
+        "mean_spearman": 0.03549816513685804,
+        "top_k_pearson": 0.12632648646831512,
+        "top_k_spearman": 0.12115633216826494
+      },
+      "Pneumonia": {
+        "max_pearson": 0.1327439397573471,
+        "mean_pearson": 0.03766462951898575,
+        "max_spearman": 0.13420720868450703,
+        "mean_spearman": 0.03768244568287682,
+        "top_k_pearson": 0.12120858579874039,
+        "top_k_spearman": 0.11916187423724386
+      },
+      "Atelectasis": {
+        "max_pearson": 0.13799837231636047,
+        "mean_pearson": 0.03403736650943756,
+        "max_spearman": 0.12857277481098175,
+        "mean_spearman": 0.03454910107243387,
+        "top_k_pearson": 0.1100369319319725,
+        "top_k_spearman": 0.11369140988169853
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.1346333771944046,
+        "mean_pearson": 0.033411163836717606,
+        "max_spearman": 0.1295885134836877,
+        "mean_spearman": 0.033284576155570095,
+        "top_k_pearson": 0.11469461768865585,
+        "top_k_spearman": 0.11197247414451642
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.18309739232063293,
+        "mean_pearson": 0.05061689764261246,
+        "max_spearman": 0.17259345569377899,
+        "mean_spearman": 0.04943718173714204,
+        "top_k_pearson": 0.1593640148639679,
+        "top_k_spearman": 0.1527118838492702
+      },
+      "Pleural Other": {
+        "max_pearson": 0.12357539683580399,
+        "mean_pearson": 0.033319681882858276,
+        "max_spearman": 0.1118484000168383,
+        "mean_spearman": 0.0339652465024671,
+        "top_k_pearson": 0.10911035537719727,
+        "top_k_spearman": 0.10773430022371197
+      },
+      "Fracture": {
+        "max_pearson": 0.14739945530891418,
+        "mean_pearson": 0.03788558766245842,
+        "max_spearman": 0.1460230467295354,
+        "mean_spearman": 0.03781882715365679,
+        "top_k_pearson": 0.1266888976097107,
+        "top_k_spearman": 0.1260086330154419
+      },
+      "Support Devices": {
+        "max_pearson": 0.29213327169418335,
+        "mean_pearson": 0.09180035442113876,
+        "max_spearman": 0.294293229592498,
+        "mean_spearman": 0.09217595070841507,
+        "top_k_pearson": 0.2673366069793701,
+        "top_k_spearman": 0.27459735250220496
+      }
+    },
+    "layer_-11": {
+      "No Finding": {
+        "max_pearson": 0.20434845983982086,
+        "mean_pearson": 0.06308773159980774,
+        "max_spearman": 0.19030127626938034,
+        "mean_spearman": 0.0636574022174728,
+        "top_k_pearson": 0.19077500700950623,
+        "top_k_spearman": 0.1756435684877217
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.13641931116580963,
+        "mean_pearson": 0.033416762948036194,
+        "max_spearman": 0.15063886238116145,
+        "mean_spearman": 0.03419259116483895,
+        "top_k_pearson": 0.1262849122285843,
+        "top_k_spearman": 0.1306107073866816
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.12664742767810822,
+        "mean_pearson": 0.032963257282972336,
+        "max_spearman": 0.12532247499379723,
+        "mean_spearman": 0.032361110382439696,
+        "top_k_pearson": 0.11623116582632065,
+        "top_k_spearman": 0.115401038185634
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.1762317270040512,
+        "mean_pearson": 0.05306961014866829,
+        "max_spearman": 0.1712046079410924,
+        "mean_spearman": 0.053819213918609214,
+        "top_k_pearson": 0.15797610580921173,
+        "top_k_spearman": 0.15594098214595692
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.12625068426132202,
+        "mean_pearson": 0.033497072756290436,
+        "max_spearman": 0.13051014519066548,
+        "mean_spearman": 0.03365599922064905,
+        "top_k_pearson": 0.11360050737857819,
+        "top_k_spearman": 0.1140598047235127
+      },
+      "Edema": {
+        "max_pearson": 0.21658870577812195,
+        "mean_pearson": 0.06382642686367035,
+        "max_spearman": 0.22445136431778465,
+        "mean_spearman": 0.06490120627439808,
+        "top_k_pearson": 0.20124518871307373,
+        "top_k_spearman": 0.20445600298853206
+      },
+      "Consolidation": {
+        "max_pearson": 0.14334514737129211,
+        "mean_pearson": 0.03664860874414444,
+        "max_spearman": 0.13992634840089846,
+        "mean_spearman": 0.03539695695996987,
+        "top_k_pearson": 0.1325024664402008,
+        "top_k_spearman": 0.1246322611002341
+      },
+      "Pneumonia": {
+        "max_pearson": 0.134971022605896,
+        "mean_pearson": 0.03778030350804329,
+        "max_spearman": 0.12415525175874437,
+        "mean_spearman": 0.037610246765846934,
+        "top_k_pearson": 0.12307927757501602,
+        "top_k_spearman": 0.11847997121336104
+      },
+      "Atelectasis": {
+        "max_pearson": 0.1196252852678299,
+        "mean_pearson": 0.03501904010772705,
+        "max_spearman": 0.12377759584429031,
+        "mean_spearman": 0.035261720778325185,
+        "top_k_pearson": 0.11359860748052597,
+        "top_k_spearman": 0.11498806541860998
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.13802310824394226,
+        "mean_pearson": 0.03403884172439575,
+        "max_spearman": 0.13474883258706996,
+        "mean_spearman": 0.03377241556613023,
+        "top_k_pearson": 0.11611180007457733,
+        "top_k_spearman": 0.11350766907777263
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.1819143295288086,
+        "mean_pearson": 0.05225083976984024,
+        "max_spearman": 0.1779163186904507,
+        "mean_spearman": 0.050923811285234266,
+        "top_k_pearson": 0.16425970196723938,
+        "top_k_spearman": 0.16316158372658882
+      },
+      "Pleural Other": {
+        "max_pearson": 0.13443192839622498,
+        "mean_pearson": 0.03335491195321083,
+        "max_spearman": 0.12050966295372828,
+        "mean_spearman": 0.034052067596622125,
+        "top_k_pearson": 0.11262979358434677,
+        "top_k_spearman": 0.11113581429339417
+      },
+      "Fracture": {
+        "max_pearson": 0.15131355822086334,
+        "mean_pearson": 0.03863777592778206,
+        "max_spearman": 0.15449225750362877,
+        "mean_spearman": 0.03857956882770763,
+        "top_k_pearson": 0.13199380040168762,
+        "top_k_spearman": 0.1295379955722295
+      },
+      "Support Devices": {
+        "max_pearson": 0.3016635775566101,
+        "mean_pearson": 0.09178616106510162,
+        "max_spearman": 0.3048171454450116,
+        "mean_spearman": 0.09233909351103547,
+        "top_k_pearson": 0.2753736972808838,
+        "top_k_spearman": 0.2802796397054325
+      }
+    },
+    "layer_-10": {
+      "No Finding": {
+        "max_pearson": 0.21269869804382324,
+        "mean_pearson": 0.06289991736412048,
+        "max_spearman": 0.19484686125704706,
+        "mean_spearman": 0.06349715807250138,
+        "top_k_pearson": 0.1933332234621048,
+        "top_k_spearman": 0.1777612338748331
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.1414058953523636,
+        "mean_pearson": 0.034098345786333084,
+        "max_spearman": 0.14541797367126022,
+        "mean_spearman": 0.03472788178899883,
+        "top_k_pearson": 0.12804724276065826,
+        "top_k_spearman": 0.1308968238866027
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.12852951884269714,
+        "mean_pearson": 0.033031925559043884,
+        "max_spearman": 0.1308789070242171,
+        "mean_spearman": 0.03251956788293748,
+        "top_k_pearson": 0.11413582414388657,
+        "top_k_spearman": 0.11262638398582821
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.173811674118042,
+        "mean_pearson": 0.05319225788116455,
+        "max_spearman": 0.17725590057167653,
+        "mean_spearman": 0.0540025242792721,
+        "top_k_pearson": 0.15737566351890564,
+        "top_k_spearman": 0.15576966701212303
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.12225767970085144,
+        "mean_pearson": 0.033489711582660675,
+        "max_spearman": 0.12790713481552032,
+        "mean_spearman": 0.033556563820700054,
+        "top_k_pearson": 0.11193332821130753,
+        "top_k_spearman": 0.1121143969761701
+      },
+      "Edema": {
+        "max_pearson": 0.2176121473312378,
+        "mean_pearson": 0.06333235651254654,
+        "max_spearman": 0.23736836031292094,
+        "mean_spearman": 0.06463516312324934,
+        "top_k_pearson": 0.20211419463157654,
+        "top_k_spearman": 0.2076629813045659
+      },
+      "Consolidation": {
+        "max_pearson": 0.14182108640670776,
+        "mean_pearson": 0.036341454833745956,
+        "max_spearman": 0.14615068625582,
+        "mean_spearman": 0.035097846690573,
+        "top_k_pearson": 0.13163933157920837,
+        "top_k_spearman": 0.12317183204509667
+      },
+      "Pneumonia": {
+        "max_pearson": 0.1316698044538498,
+        "mean_pearson": 0.037595126777887344,
+        "max_spearman": 0.1284205415894058,
+        "mean_spearman": 0.03733405613766237,
+        "top_k_pearson": 0.12187696993350983,
+        "top_k_spearman": 0.11694772696846104
+      },
+      "Atelectasis": {
+        "max_pearson": 0.12330712378025055,
+        "mean_pearson": 0.03466320037841797,
+        "max_spearman": 0.12343508306095521,
+        "mean_spearman": 0.03480861906719327,
+        "top_k_pearson": 0.11354223638772964,
+        "top_k_spearman": 0.11648859761226853
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.13277669250965118,
+        "mean_pearson": 0.033775728195905685,
+        "max_spearman": 0.12891122160136878,
+        "mean_spearman": 0.03336743186415254,
+        "top_k_pearson": 0.11173883825540543,
+        "top_k_spearman": 0.10909882144382041
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.17735856771469116,
+        "mean_pearson": 0.051746074110269547,
+        "max_spearman": 0.17330216549786842,
+        "mean_spearman": 0.050822414632243004,
+        "top_k_pearson": 0.15968456864356995,
+        "top_k_spearman": 0.1567243876549765
+      },
+      "Pleural Other": {
+        "max_pearson": 0.1382448524236679,
+        "mean_pearson": 0.0337604284286499,
+        "max_spearman": 0.12629696137065022,
+        "mean_spearman": 0.03438214496364319,
+        "top_k_pearson": 0.11327894777059555,
+        "top_k_spearman": 0.11169092250889483
+      },
+      "Fracture": {
+        "max_pearson": 0.14902830123901367,
+        "mean_pearson": 0.03808487579226494,
+        "max_spearman": 0.157325822446634,
+        "mean_spearman": 0.03815037994233798,
+        "top_k_pearson": 0.13230447471141815,
+        "top_k_spearman": 0.12840456959502744
+      },
+      "Support Devices": {
+        "max_pearson": 0.3254833519458771,
+        "mean_pearson": 0.09213752299547195,
+        "max_spearman": 0.3229477664964361,
+        "mean_spearman": 0.09260165636024227,
+        "top_k_pearson": 0.2875991463661194,
+        "top_k_spearman": 0.2922009935645914
+      }
+    },
+    "layer_-9": {
+      "No Finding": {
+        "max_pearson": 0.21355949342250824,
+        "mean_pearson": 0.06341873854398727,
+        "max_spearman": 0.18976013519942003,
+        "mean_spearman": 0.06404824198116064,
+        "top_k_pearson": 0.19520843029022217,
+        "top_k_spearman": 0.18061124350995747
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.13950495421886444,
+        "mean_pearson": 0.03337244689464569,
+        "max_spearman": 0.14777769738195004,
+        "mean_spearman": 0.03402115529252763,
+        "top_k_pearson": 0.12329014390707016,
+        "top_k_spearman": 0.12607708820751876
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.12648357450962067,
+        "mean_pearson": 0.033886685967445374,
+        "max_spearman": 0.12623073792184664,
+        "mean_spearman": 0.03335296157454822,
+        "top_k_pearson": 0.11387617886066437,
+        "top_k_spearman": 0.10927471569055569
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.1680566817522049,
+        "mean_pearson": 0.05233250558376312,
+        "max_spearman": 0.18684402177173448,
+        "mean_spearman": 0.05279186039383613,
+        "top_k_pearson": 0.15424533188343048,
+        "top_k_spearman": 0.1535702017454815
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.13020892441272736,
+        "mean_pearson": 0.03399953246116638,
+        "max_spearman": 0.12739338276779433,
+        "mean_spearman": 0.034277407295972555,
+        "top_k_pearson": 0.11441798508167267,
+        "top_k_spearman": 0.11301346295194314
+      },
+      "Edema": {
+        "max_pearson": 0.22749829292297363,
+        "mean_pearson": 0.06569229066371918,
+        "max_spearman": 0.2312068047520226,
+        "mean_spearman": 0.06701061401033798,
+        "top_k_pearson": 0.21014781296253204,
+        "top_k_spearman": 0.2127592558739113
+      },
+      "Consolidation": {
+        "max_pearson": 0.14306339621543884,
+        "mean_pearson": 0.03581622615456581,
+        "max_spearman": 0.13386368165909177,
+        "mean_spearman": 0.034404639689838284,
+        "top_k_pearson": 0.12299386411905289,
+        "top_k_spearman": 0.11593435521465542
+      },
+      "Pneumonia": {
+        "max_pearson": 0.13650432229042053,
+        "mean_pearson": 0.037878140807151794,
+        "max_spearman": 0.13154479847173745,
+        "mean_spearman": 0.03767614906078646,
+        "top_k_pearson": 0.12421109527349472,
+        "top_k_spearman": 0.1191021058447123
+      },
+      "Atelectasis": {
+        "max_pearson": 0.12736330926418304,
+        "mean_pearson": 0.034318771213293076,
+        "max_spearman": 0.12738213513557878,
+        "mean_spearman": 0.03442426909475212,
+        "top_k_pearson": 0.11473057419061661,
+        "top_k_spearman": 0.11584434737694775
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.1254088580608368,
+        "mean_pearson": 0.0334286242723465,
+        "max_spearman": 0.12600854210571621,
+        "mean_spearman": 0.03321444486571065,
+        "top_k_pearson": 0.11435791105031967,
+        "top_k_spearman": 0.11223371529912515
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.19978702068328857,
+        "mean_pearson": 0.05333458632230759,
+        "max_spearman": 0.18902949157585297,
+        "mean_spearman": 0.05244452550498388,
+        "top_k_pearson": 0.16974636912345886,
+        "top_k_spearman": 0.16691020622226183
+      },
+      "Pleural Other": {
+        "max_pearson": 0.15818683803081512,
+        "mean_pearson": 0.03311346471309662,
+        "max_spearman": 0.14322579347457154,
+        "mean_spearman": 0.033811750358236775,
+        "top_k_pearson": 0.11482212692499161,
+        "top_k_spearman": 0.11589557197098507
+      },
+      "Fracture": {
+        "max_pearson": 0.14409679174423218,
+        "mean_pearson": 0.03818243741989136,
+        "max_spearman": 0.14536188157616753,
+        "mean_spearman": 0.0386755378028329,
+        "top_k_pearson": 0.13069666922092438,
+        "top_k_spearman": 0.12801731571948338
+      },
+      "Support Devices": {
+        "max_pearson": 0.34230026602745056,
+        "mean_pearson": 0.09809587895870209,
+        "max_spearman": 0.33085246633200516,
+        "mean_spearman": 0.09920134308620422,
+        "top_k_pearson": 0.290934294462204,
+        "top_k_spearman": 0.2928659921221869
+      }
+    },
+    "layer_-8": {
+      "No Finding": {
+        "max_pearson": 0.2174200862646103,
+        "mean_pearson": 0.06550732254981995,
+        "max_spearman": 0.19048165662603378,
+        "mean_spearman": 0.06617428754260897,
+        "top_k_pearson": 0.19963118433952332,
+        "top_k_spearman": 0.18262068068307682
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.14329195022583008,
+        "mean_pearson": 0.03295547142624855,
+        "max_spearman": 0.15547629598807558,
+        "mean_spearman": 0.03348444361041353,
+        "top_k_pearson": 0.122822605073452,
+        "top_k_spearman": 0.12688234392379166
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.1234806478023529,
+        "mean_pearson": 0.03408671170473099,
+        "max_spearman": 0.1321789696467192,
+        "mean_spearman": 0.03367371047216325,
+        "top_k_pearson": 0.11669714748859406,
+        "top_k_spearman": 0.11395494113156324
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.17545641958713531,
+        "mean_pearson": 0.05290498957037926,
+        "max_spearman": 0.19637688002539438,
+        "mean_spearman": 0.05368971537635197,
+        "top_k_pearson": 0.16216401755809784,
+        "top_k_spearman": 0.16033162323728029
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.11154928058385849,
+        "mean_pearson": 0.03531257435679436,
+        "max_spearman": 0.1155942107383535,
+        "mean_spearman": 0.03574802253443378,
+        "top_k_pearson": 0.10786400735378265,
+        "top_k_spearman": 0.1095696117253531
+      },
+      "Edema": {
+        "max_pearson": 0.23262158036231995,
+        "mean_pearson": 0.06865432858467102,
+        "max_spearman": 0.24061616821399687,
+        "mean_spearman": 0.07012992729385188,
+        "top_k_pearson": 0.21522757411003113,
+        "top_k_spearman": 0.2180763813805299
+      },
+      "Consolidation": {
+        "max_pearson": 0.1327703446149826,
+        "mean_pearson": 0.03556802123785019,
+        "max_spearman": 0.12454064746946904,
+        "mean_spearman": 0.0343839980887993,
+        "top_k_pearson": 0.12071855366230011,
+        "top_k_spearman": 0.11480535194140344
+      },
+      "Pneumonia": {
+        "max_pearson": 0.14425043761730194,
+        "mean_pearson": 0.038333967328071594,
+        "max_spearman": 0.13333785024768433,
+        "mean_spearman": 0.03821675068090524,
+        "top_k_pearson": 0.12179948389530182,
+        "top_k_spearman": 0.11648316355378388
+      },
+      "Atelectasis": {
+        "max_pearson": 0.132858544588089,
+        "mean_pearson": 0.03482549265027046,
+        "max_spearman": 0.13191635198163396,
+        "mean_spearman": 0.03484606016559585,
+        "top_k_pearson": 0.1183481365442276,
+        "top_k_spearman": 0.11699910476076322
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.133388951420784,
+        "mean_pearson": 0.03387796878814697,
+        "max_spearman": 0.1328782169120939,
+        "mean_spearman": 0.03374992035999121,
+        "top_k_pearson": 0.11660520732402802,
+        "top_k_spearman": 0.11675867011290349
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.2079170197248459,
+        "mean_pearson": 0.05391572788357735,
+        "max_spearman": 0.1957848531127054,
+        "mean_spearman": 0.05289686728863211,
+        "top_k_pearson": 0.16801518201828003,
+        "top_k_spearman": 0.16724797429910446
+      },
+      "Pleural Other": {
+        "max_pearson": 0.16231605410575867,
+        "mean_pearson": 0.03322157636284828,
+        "max_spearman": 0.1541704802766416,
+        "mean_spearman": 0.03368431250620958,
+        "top_k_pearson": 0.11414605379104614,
+        "top_k_spearman": 0.11205312077716481
+      },
+      "Fracture": {
+        "max_pearson": 0.1491186022758484,
+        "mean_pearson": 0.040044184774160385,
+        "max_spearman": 0.14674717999274786,
+        "mean_spearman": 0.04099617502074723,
+        "top_k_pearson": 0.13461020588874817,
+        "top_k_spearman": 0.13018027029264406
+      },
+      "Support Devices": {
+        "max_pearson": 0.32709208130836487,
+        "mean_pearson": 0.10566774010658264,
+        "max_spearman": 0.34637955529473025,
+        "mean_spearman": 0.10694155228428077,
+        "top_k_pearson": 0.30067652463912964,
+        "top_k_spearman": 0.305963640599734
+      }
+    },
+    "layer_-7": {
+      "No Finding": {
+        "max_pearson": 0.21869438886642456,
+        "mean_pearson": 0.06528929620981216,
+        "max_spearman": 0.19571268696898358,
+        "mean_spearman": 0.06583194065601036,
+        "top_k_pearson": 0.2005687654018402,
+        "top_k_spearman": 0.18431986364275224
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.14012283086776733,
+        "mean_pearson": 0.03331654146313667,
+        "max_spearman": 0.14789568356748453,
+        "mean_spearman": 0.03385786169434512,
+        "top_k_pearson": 0.12552905082702637,
+        "top_k_spearman": 0.1316637340925769
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.1438293755054474,
+        "mean_pearson": 0.0352674275636673,
+        "max_spearman": 0.13987249091960827,
+        "mean_spearman": 0.03497789299101009,
+        "top_k_pearson": 0.1202978864312172,
+        "top_k_spearman": 0.11731729487304805
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.1884010285139084,
+        "mean_pearson": 0.05225121229887009,
+        "max_spearman": 0.19353083828589593,
+        "mean_spearman": 0.05313454343215508,
+        "top_k_pearson": 0.16242530941963196,
+        "top_k_spearman": 0.16293727115994733
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.13044588267803192,
+        "mean_pearson": 0.035629794001579285,
+        "max_spearman": 0.13232540242596408,
+        "mean_spearman": 0.036194567607116666,
+        "top_k_pearson": 0.11437912285327911,
+        "top_k_spearman": 0.11626208840039734
+      },
+      "Edema": {
+        "max_pearson": 0.24523554742336273,
+        "mean_pearson": 0.06838716566562653,
+        "max_spearman": 0.2553333777314438,
+        "mean_spearman": 0.0700461141934016,
+        "top_k_pearson": 0.2159488946199417,
+        "top_k_spearman": 0.22349186906929538
+      },
+      "Consolidation": {
+        "max_pearson": 0.1382228285074234,
+        "mean_pearson": 0.035949066281318665,
+        "max_spearman": 0.13095360162302455,
+        "mean_spearman": 0.03474985149022556,
+        "top_k_pearson": 0.12228459119796753,
+        "top_k_spearman": 0.11706066396935552
+      },
+      "Pneumonia": {
+        "max_pearson": 0.1485459953546524,
+        "mean_pearson": 0.03824591264128685,
+        "max_spearman": 0.13920601969623767,
+        "mean_spearman": 0.038207718447443015,
+        "top_k_pearson": 0.1255195438861847,
+        "top_k_spearman": 0.123758606971944
+      },
+      "Atelectasis": {
+        "max_pearson": 0.15386126935482025,
+        "mean_pearson": 0.0357646569609642,
+        "max_spearman": 0.15806149444288015,
+        "mean_spearman": 0.03561108608279484,
+        "top_k_pearson": 0.12828613817691803,
+        "top_k_spearman": 0.12400430668659308
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.13648347556591034,
+        "mean_pearson": 0.034594714641571045,
+        "max_spearman": 0.14003815966803682,
+        "mean_spearman": 0.034572080251055216,
+        "top_k_pearson": 0.11969824135303497,
+        "top_k_spearman": 0.12107076176366731
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.2059515118598938,
+        "mean_pearson": 0.05443964898586273,
+        "max_spearman": 0.20418381823776524,
+        "mean_spearman": 0.05343574276716622,
+        "top_k_pearson": 0.17061486840248108,
+        "top_k_spearman": 0.17054875251432097
+      },
+      "Pleural Other": {
+        "max_pearson": 0.14715522527694702,
+        "mean_pearson": 0.0341726690530777,
+        "max_spearman": 0.13987939643077313,
+        "mean_spearman": 0.034590132837399735,
+        "top_k_pearson": 0.1161600723862648,
+        "top_k_spearman": 0.11451370683878126
+      },
+      "Fracture": {
+        "max_pearson": 0.1535564363002777,
+        "mean_pearson": 0.04040686413645744,
+        "max_spearman": 0.14954926088083081,
+        "mean_spearman": 0.04104837514419937,
+        "top_k_pearson": 0.13568660616874695,
+        "top_k_spearman": 0.1336466647395871
+      },
+      "Support Devices": {
+        "max_pearson": 0.36152756214141846,
+        "mean_pearson": 0.10738758742809296,
+        "max_spearman": 0.36038530321767315,
+        "mean_spearman": 0.10833678881950062,
+        "top_k_pearson": 0.3036159574985504,
+        "top_k_spearman": 0.30819860037467184
+      }
+    },
+    "layer_-6": {
+      "No Finding": {
+        "max_pearson": 0.20758649706840515,
+        "mean_pearson": 0.06448617577552795,
+        "max_spearman": 0.18947152662877453,
+        "mean_spearman": 0.0650550524792534,
+        "top_k_pearson": 0.1967591494321823,
+        "top_k_spearman": 0.18600461617389535
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.15150728821754456,
+        "mean_pearson": 0.03366104140877724,
+        "max_spearman": 0.1513467794943684,
+        "mean_spearman": 0.03415933073575271,
+        "top_k_pearson": 0.12679389119148254,
+        "top_k_spearman": 0.13312971244784294
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.13008446991443634,
+        "mean_pearson": 0.034623295068740845,
+        "max_spearman": 0.1295076080936327,
+        "mean_spearman": 0.03432853415621259,
+        "top_k_pearson": 0.11975917965173721,
+        "top_k_spearman": 0.11613833397428588
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.17339754104614258,
+        "mean_pearson": 0.051575202494859695,
+        "max_spearman": 0.17709011173248243,
+        "mean_spearman": 0.05220526724545331,
+        "top_k_pearson": 0.1577271670103073,
+        "top_k_spearman": 0.15452901386548729
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.13427214324474335,
+        "mean_pearson": 0.03553089499473572,
+        "max_spearman": 0.13801092508746532,
+        "mean_spearman": 0.03613590086938385,
+        "top_k_pearson": 0.11561901867389679,
+        "top_k_spearman": 0.11621242570245047
+      },
+      "Edema": {
+        "max_pearson": 0.2321711927652359,
+        "mean_pearson": 0.06768012791872025,
+        "max_spearman": 0.2488377619292919,
+        "mean_spearman": 0.06913294209104019,
+        "top_k_pearson": 0.2134714424610138,
+        "top_k_spearman": 0.21949984918631574
+      },
+      "Consolidation": {
+        "max_pearson": 0.14275068044662476,
+        "mean_pearson": 0.03572803735733032,
+        "max_spearman": 0.13232780608450076,
+        "mean_spearman": 0.03488720878269779,
+        "top_k_pearson": 0.12469764798879623,
+        "top_k_spearman": 0.11845373006069511
+      },
+      "Pneumonia": {
+        "max_pearson": 0.15552924573421478,
+        "mean_pearson": 0.03865910321474075,
+        "max_spearman": 0.1470574130787928,
+        "mean_spearman": 0.03847796619429647,
+        "top_k_pearson": 0.1299607753753662,
+        "top_k_spearman": 0.12925186559461754
+      },
+      "Atelectasis": {
+        "max_pearson": 0.1530057191848755,
+        "mean_pearson": 0.036724839359521866,
+        "max_spearman": 0.1613235209508335,
+        "mean_spearman": 0.03659721906629527,
+        "top_k_pearson": 0.1305413544178009,
+        "top_k_spearman": 0.12957910998868535
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.12669111788272858,
+        "mean_pearson": 0.034191422164440155,
+        "max_spearman": 0.12613755008330077,
+        "mean_spearman": 0.034286991657777904,
+        "top_k_pearson": 0.11830364167690277,
+        "top_k_spearman": 0.11515252079197573
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.20190374553203583,
+        "mean_pearson": 0.05379922688007355,
+        "max_spearman": 0.2115272581226919,
+        "mean_spearman": 0.05271618188957598,
+        "top_k_pearson": 0.1784439980983734,
+        "top_k_spearman": 0.17712618265355093
+      },
+      "Pleural Other": {
+        "max_pearson": 0.16313402354717255,
+        "mean_pearson": 0.03504808247089386,
+        "max_spearman": 0.14523363170085057,
+        "mean_spearman": 0.03569479927839366,
+        "top_k_pearson": 0.12036993354558945,
+        "top_k_spearman": 0.1194388158997128
+      },
+      "Fracture": {
+        "max_pearson": 0.15915526449680328,
+        "mean_pearson": 0.039937399327754974,
+        "max_spearman": 0.1422449601388618,
+        "mean_spearman": 0.040089040685856586,
+        "top_k_pearson": 0.1346244215965271,
+        "top_k_spearman": 0.13226136632300675
+      },
+      "Support Devices": {
+        "max_pearson": 0.3771527111530304,
+        "mean_pearson": 0.10587823390960693,
+        "max_spearman": 0.3795824313897696,
+        "mean_spearman": 0.10667351639709587,
+        "top_k_pearson": 0.3038520812988281,
+        "top_k_spearman": 0.30959603838131705
+      }
+    },
+    "layer_-5": {
+      "No Finding": {
+        "max_pearson": 0.21464811265468597,
+        "mean_pearson": 0.06495480984449387,
+        "max_spearman": 0.2005468805272958,
+        "mean_spearman": 0.06556717924679784,
+        "top_k_pearson": 0.1984022557735443,
+        "top_k_spearman": 0.18824133259639803
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.15246330201625824,
+        "mean_pearson": 0.034683506935834885,
+        "max_spearman": 0.14851511104154058,
+        "mean_spearman": 0.03512027291259199,
+        "top_k_pearson": 0.12772800028324127,
+        "top_k_spearman": 0.13236280224186875
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.18705978989601135,
+        "mean_pearson": 0.03893943130970001,
+        "max_spearman": 0.17956892359847343,
+        "mean_spearman": 0.03859271822590975,
+        "top_k_pearson": 0.13531756401062012,
+        "top_k_spearman": 0.13141674115023855
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.18172676861286163,
+        "mean_pearson": 0.05156651511788368,
+        "max_spearman": 0.18399798003223597,
+        "mean_spearman": 0.05223629268911909,
+        "top_k_pearson": 0.15934480726718903,
+        "top_k_spearman": 0.15622282317258684
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.13715560734272003,
+        "mean_pearson": 0.035327039659023285,
+        "max_spearman": 0.1398775575275365,
+        "mean_spearman": 0.035730429203201776,
+        "top_k_pearson": 0.11297528445720673,
+        "top_k_spearman": 0.1163211699926183
+      },
+      "Edema": {
+        "max_pearson": 0.24461396038532257,
+        "mean_pearson": 0.06893869489431381,
+        "max_spearman": 0.24646222243593355,
+        "mean_spearman": 0.07066398709321617,
+        "top_k_pearson": 0.22091135382652283,
+        "top_k_spearman": 0.2259527795131963
+      },
+      "Consolidation": {
+        "max_pearson": 0.14966139197349548,
+        "mean_pearson": 0.03523647040128708,
+        "max_spearman": 0.14563872773095632,
+        "mean_spearman": 0.03452832557693977,
+        "top_k_pearson": 0.12055270373821259,
+        "top_k_spearman": 0.12226647381165354
+      },
+      "Pneumonia": {
+        "max_pearson": 0.15408256649971008,
+        "mean_pearson": 0.03889136761426926,
+        "max_spearman": 0.15124120055600215,
+        "mean_spearman": 0.03880218331248428,
+        "top_k_pearson": 0.13818052411079407,
+        "top_k_spearman": 0.1353237909268012
+      },
+      "Atelectasis": {
+        "max_pearson": 0.1490236520767212,
+        "mean_pearson": 0.037137873470783234,
+        "max_spearman": 0.15044466254680905,
+        "mean_spearman": 0.036775873066838466,
+        "top_k_pearson": 0.1329178363084793,
+        "top_k_spearman": 0.13150370562837785
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.15329580008983612,
+        "mean_pearson": 0.03568689525127411,
+        "max_spearman": 0.1428763351748971,
+        "mean_spearman": 0.03574386072121082,
+        "top_k_pearson": 0.12705126404762268,
+        "top_k_spearman": 0.12310908780950329
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.22774800658226013,
+        "mean_pearson": 0.05654173344373703,
+        "max_spearman": 0.22957673972896953,
+        "mean_spearman": 0.055310595914642914,
+        "top_k_pearson": 0.19527968764305115,
+        "top_k_spearman": 0.19612714486914862
+      },
+      "Pleural Other": {
+        "max_pearson": 0.16286350786685944,
+        "mean_pearson": 0.03564177080988884,
+        "max_spearman": 0.14397381163730294,
+        "mean_spearman": 0.0362252093611562,
+        "top_k_pearson": 0.12481818348169327,
+        "top_k_spearman": 0.1217694830172759
+      },
+      "Fracture": {
+        "max_pearson": 0.15729312598705292,
+        "mean_pearson": 0.03966754302382469,
+        "max_spearman": 0.13925397492124517,
+        "mean_spearman": 0.03995955157785045,
+        "top_k_pearson": 0.13010914623737335,
+        "top_k_spearman": 0.12655645557108958
+      },
+      "Support Devices": {
+        "max_pearson": 0.3663078248500824,
+        "mean_pearson": 0.10686299204826355,
+        "max_spearman": 0.3693251423174239,
+        "mean_spearman": 0.10751102046890315,
+        "top_k_pearson": 0.30978700518608093,
+        "top_k_spearman": 0.31440943595976184
+      }
+    },
+    "layer_-4": {
+      "No Finding": {
+        "max_pearson": 0.2002526968717575,
+        "mean_pearson": 0.06509213894605637,
+        "max_spearman": 0.19358419876047295,
+        "mean_spearman": 0.0657227103304156,
+        "top_k_pearson": 0.1953984498977661,
+        "top_k_spearman": 0.18286239036099242
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.14978277683258057,
+        "mean_pearson": 0.034726522862911224,
+        "max_spearman": 0.1485446075879242,
+        "mean_spearman": 0.03517670554285842,
+        "top_k_pearson": 0.12770631909370422,
+        "top_k_spearman": 0.13076113977323806
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.18699681758880615,
+        "mean_pearson": 0.03915911167860031,
+        "max_spearman": 0.17696879835346924,
+        "mean_spearman": 0.03887218314951578,
+        "top_k_pearson": 0.13279421627521515,
+        "top_k_spearman": 0.1301389399906261
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.17417536675930023,
+        "mean_pearson": 0.050781331956386566,
+        "max_spearman": 0.1679440941036087,
+        "mean_spearman": 0.05136823988628177,
+        "top_k_pearson": 0.15381726622581482,
+        "top_k_spearman": 0.15327178183493212
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.14893434941768646,
+        "mean_pearson": 0.035035863518714905,
+        "max_spearman": 0.1478578393355473,
+        "mean_spearman": 0.03541785210968532,
+        "top_k_pearson": 0.1140819787979126,
+        "top_k_spearman": 0.11840614694624055
+      },
+      "Edema": {
+        "max_pearson": 0.23287628591060638,
+        "mean_pearson": 0.0683434009552002,
+        "max_spearman": 0.2414884366217144,
+        "mean_spearman": 0.07013298016591553,
+        "top_k_pearson": 0.2178085744380951,
+        "top_k_spearman": 0.22398924765071726
+      },
+      "Consolidation": {
+        "max_pearson": 0.15280994772911072,
+        "mean_pearson": 0.03590526059269905,
+        "max_spearman": 0.14930327296155949,
+        "mean_spearman": 0.03488386402578772,
+        "top_k_pearson": 0.12570050358772278,
+        "top_k_spearman": 0.12559959326037126
+      },
+      "Pneumonia": {
+        "max_pearson": 0.1591368168592453,
+        "mean_pearson": 0.039472393691539764,
+        "max_spearman": 0.15662035588384274,
+        "mean_spearman": 0.03950273565829988,
+        "top_k_pearson": 0.13794612884521484,
+        "top_k_spearman": 0.13575031990986736
+      },
+      "Atelectasis": {
+        "max_pearson": 0.1434383988380432,
+        "mean_pearson": 0.037210337817668915,
+        "max_spearman": 0.1480633831960031,
+        "mean_spearman": 0.037098840592483064,
+        "top_k_pearson": 0.13101378083229065,
+        "top_k_spearman": 0.13189025576957034
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.15952828526496887,
+        "mean_pearson": 0.03588654473423958,
+        "max_spearman": 0.14029617562320593,
+        "mean_spearman": 0.035893012198184276,
+        "top_k_pearson": 0.12608730792999268,
+        "top_k_spearman": 0.1260536950167769
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.23259373009204865,
+        "mean_pearson": 0.057186007499694824,
+        "max_spearman": 0.23141636943320165,
+        "mean_spearman": 0.05591755565165609,
+        "top_k_pearson": 0.20104610919952393,
+        "top_k_spearman": 0.20153143409863059
+      },
+      "Pleural Other": {
+        "max_pearson": 0.1363733410835266,
+        "mean_pearson": 0.036419905722141266,
+        "max_spearman": 0.13318660234317634,
+        "mean_spearman": 0.037068284748647214,
+        "top_k_pearson": 0.12330400943756104,
+        "top_k_spearman": 0.12113169911010493
+      },
+      "Fracture": {
+        "max_pearson": 0.15428580343723297,
+        "mean_pearson": 0.03962205350399017,
+        "max_spearman": 0.1390335865367892,
+        "mean_spearman": 0.040068242626129034,
+        "top_k_pearson": 0.13241644203662872,
+        "top_k_spearman": 0.12780952095699633
+      },
+      "Support Devices": {
+        "max_pearson": 0.3904745578765869,
+        "mean_pearson": 0.10791203379631042,
+        "max_spearman": 0.3972582185220839,
+        "mean_spearman": 0.1083877752026057,
+        "top_k_pearson": 0.31002169847488403,
+        "top_k_spearman": 0.3159652816416833
+      }
+    },
+    "layer_-3": {
+      "No Finding": {
+        "max_pearson": 0.19782541692256927,
+        "mean_pearson": 0.06362521648406982,
+        "max_spearman": 0.18716265806361046,
+        "mean_spearman": 0.06442585072569981,
+        "top_k_pearson": 0.19151252508163452,
+        "top_k_spearman": 0.17794522183861963
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.1602339744567871,
+        "mean_pearson": 0.0350385345518589,
+        "max_spearman": 0.15081584165946318,
+        "mean_spearman": 0.03546037936035814,
+        "top_k_pearson": 0.1338302195072174,
+        "top_k_spearman": 0.13607936708620524
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.1700751781463623,
+        "mean_pearson": 0.03809201344847679,
+        "max_spearman": 0.16316676366252242,
+        "mean_spearman": 0.03771817969192325,
+        "top_k_pearson": 0.1289331614971161,
+        "top_k_spearman": 0.12897689759841952
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.17323614656925201,
+        "mean_pearson": 0.05086168646812439,
+        "max_spearman": 0.17029276932552492,
+        "mean_spearman": 0.051735844017105966,
+        "top_k_pearson": 0.15573708713054657,
+        "top_k_spearman": 0.15350941250444364
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.13265781104564667,
+        "mean_pearson": 0.03465361148118973,
+        "max_spearman": 0.12989364273339427,
+        "mean_spearman": 0.03488677431068543,
+        "top_k_pearson": 0.11129535734653473,
+        "top_k_spearman": 0.11507189615649871
+      },
+      "Edema": {
+        "max_pearson": 0.23503035306930542,
+        "mean_pearson": 0.06771460175514221,
+        "max_spearman": 0.24842018894638657,
+        "mean_spearman": 0.06952715766915196,
+        "top_k_pearson": 0.21439282596111298,
+        "top_k_spearman": 0.22147358867692146
+      },
+      "Consolidation": {
+        "max_pearson": 0.15411199629306793,
+        "mean_pearson": 0.0366126149892807,
+        "max_spearman": 0.15172833965828214,
+        "mean_spearman": 0.03543167929653149,
+        "top_k_pearson": 0.12730318307876587,
+        "top_k_spearman": 0.1240367725002611
+      },
+      "Pneumonia": {
+        "max_pearson": 0.14946216344833374,
+        "mean_pearson": 0.04005398601293564,
+        "max_spearman": 0.14559037071665448,
+        "mean_spearman": 0.03985603044079601,
+        "top_k_pearson": 0.13460735976696014,
+        "top_k_spearman": 0.13306617573617724
+      },
+      "Atelectasis": {
+        "max_pearson": 0.14218169450759888,
+        "mean_pearson": 0.03639635071158409,
+        "max_spearman": 0.1388155380459553,
+        "mean_spearman": 0.03607790699729264,
+        "top_k_pearson": 0.1253097951412201,
+        "top_k_spearman": 0.12364874579722614
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.1566254049539566,
+        "mean_pearson": 0.035642556846141815,
+        "max_spearman": 0.1501007819196323,
+        "mean_spearman": 0.03587058698272029,
+        "top_k_pearson": 0.12500348687171936,
+        "top_k_spearman": 0.12367994811031498
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.23110060393810272,
+        "mean_pearson": 0.05645816773176193,
+        "max_spearman": 0.2322004738973006,
+        "mean_spearman": 0.05495230766383232,
+        "top_k_pearson": 0.19470413029193878,
+        "top_k_spearman": 0.194085457476091
+      },
+      "Pleural Other": {
+        "max_pearson": 0.13780945539474487,
+        "mean_pearson": 0.03622576966881752,
+        "max_spearman": 0.13609993624013023,
+        "mean_spearman": 0.036955046528859524,
+        "top_k_pearson": 0.1186593770980835,
+        "top_k_spearman": 0.11922228432629053
+      },
+      "Fracture": {
+        "max_pearson": 0.16513919830322266,
+        "mean_pearson": 0.03912143036723137,
+        "max_spearman": 0.14407103532435406,
+        "mean_spearman": 0.03978842535596876,
+        "top_k_pearson": 0.133143812417984,
+        "top_k_spearman": 0.12603382025937973
+      },
+      "Support Devices": {
+        "max_pearson": 0.3706289827823639,
+        "mean_pearson": 0.1069173589348793,
+        "max_spearman": 0.37349706723064097,
+        "mean_spearman": 0.10765905116073847,
+        "top_k_pearson": 0.3185960650444031,
+        "top_k_spearman": 0.3228850307834553
+      }
+    },
+    "layer_-2": {
+      "No Finding": {
+        "max_pearson": 0.21333763003349304,
+        "mean_pearson": 0.06495103240013123,
+        "max_spearman": 0.19491901339970844,
+        "mean_spearman": 0.06563336568502794,
+        "top_k_pearson": 0.1984713226556778,
+        "top_k_spearman": 0.17920066912092758
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.15366411209106445,
+        "mean_pearson": 0.03577450290322304,
+        "max_spearman": 0.15016691763902348,
+        "mean_spearman": 0.03663640051793449,
+        "top_k_pearson": 0.13112623989582062,
+        "top_k_spearman": 0.1317876195873881
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.1620863825082779,
+        "mean_pearson": 0.037492550909519196,
+        "max_spearman": 0.15262379006634108,
+        "mean_spearman": 0.03723076442264369,
+        "top_k_pearson": 0.1303892284631729,
+        "top_k_spearman": 0.1299252310603785
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.18035250902175903,
+        "mean_pearson": 0.05199315771460533,
+        "max_spearman": 0.17769800414286074,
+        "mean_spearman": 0.05242573138330919,
+        "top_k_pearson": 0.15986037254333496,
+        "top_k_spearman": 0.15668703205767717
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.1375119835138321,
+        "mean_pearson": 0.034507036209106445,
+        "max_spearman": 0.1288490135696847,
+        "mean_spearman": 0.03497332131229289,
+        "top_k_pearson": 0.1144227609038353,
+        "top_k_spearman": 0.11921102515434465
+      },
+      "Edema": {
+        "max_pearson": 0.236857607960701,
+        "mean_pearson": 0.06629607081413269,
+        "max_spearman": 0.2562242050414532,
+        "mean_spearman": 0.06838973216274143,
+        "top_k_pearson": 0.21315252780914307,
+        "top_k_spearman": 0.21981720641550662
+      },
+      "Consolidation": {
+        "max_pearson": 0.16231583058834076,
+        "mean_pearson": 0.038624849170446396,
+        "max_spearman": 0.1491685470339638,
+        "mean_spearman": 0.036985717139997744,
+        "top_k_pearson": 0.13160419464111328,
+        "top_k_spearman": 0.124416699616081
+      },
+      "Pneumonia": {
+        "max_pearson": 0.14754144847393036,
+        "mean_pearson": 0.03915571793913841,
+        "max_spearman": 0.15591400215392426,
+        "mean_spearman": 0.039385717524021216,
+        "top_k_pearson": 0.1353064626455307,
+        "top_k_spearman": 0.13368016013218326
+      },
+      "Atelectasis": {
+        "max_pearson": 0.15461157262325287,
+        "mean_pearson": 0.03703097626566887,
+        "max_spearman": 0.15594117721271047,
+        "mean_spearman": 0.03687751407456944,
+        "top_k_pearson": 0.13351324200630188,
+        "top_k_spearman": 0.13287375676171825
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.15060916543006897,
+        "mean_pearson": 0.03712872788310051,
+        "max_spearman": 0.15242292551615433,
+        "mean_spearman": 0.037413349372756026,
+        "top_k_pearson": 0.1314166784286499,
+        "top_k_spearman": 0.12978202545006454
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.2434433102607727,
+        "mean_pearson": 0.0573008731007576,
+        "max_spearman": 0.24372077794675429,
+        "mean_spearman": 0.055884629389669066,
+        "top_k_pearson": 0.19860151410102844,
+        "top_k_spearman": 0.19520431423063217
+      },
+      "Pleural Other": {
+        "max_pearson": 0.1295868158340454,
+        "mean_pearson": 0.03499174863100052,
+        "max_spearman": 0.12354110498163975,
+        "mean_spearman": 0.03612581193730833,
+        "top_k_pearson": 0.1160958781838417,
+        "top_k_spearman": 0.1192025996377976
+      },
+      "Fracture": {
+        "max_pearson": 0.15279676020145416,
+        "mean_pearson": 0.038892243057489395,
+        "max_spearman": 0.1358851810445612,
+        "mean_spearman": 0.03974001042086967,
+        "top_k_pearson": 0.12784525752067566,
+        "top_k_spearman": 0.12462963140984604
+      },
+      "Support Devices": {
+        "max_pearson": 0.37989580631256104,
+        "mean_pearson": 0.10999086499214172,
+        "max_spearman": 0.3840366670113998,
+        "mean_spearman": 0.11073379543175862,
+        "top_k_pearson": 0.33972272276878357,
+        "top_k_spearman": 0.3471025843868329
+      }
+    },
+    "layer_-1": {
+      "No Finding": {
+        "max_pearson": 0.20538842678070068,
+        "mean_pearson": 0.061734650284051895,
+        "max_spearman": 0.20069118481261858,
+        "mean_spearman": 0.06371245581299884,
+        "top_k_pearson": 0.19131140410900116,
+        "top_k_spearman": 0.1795650374413675
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.1723087877035141,
+        "mean_pearson": 0.039523281157016754,
+        "max_spearman": 0.16090366052266217,
+        "mean_spearman": 0.03855221656912664,
+        "top_k_pearson": 0.1416165679693222,
+        "top_k_spearman": 0.13928564167810503
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.16996756196022034,
+        "mean_pearson": 0.03752690926194191,
+        "max_spearman": 0.14868798404479366,
+        "mean_spearman": 0.036983014191151437,
+        "top_k_pearson": 0.1288755238056183,
+        "top_k_spearman": 0.122690293410156
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.18111076951026917,
+        "mean_pearson": 0.0553448386490345,
+        "max_spearman": 0.17487959387656132,
+        "mean_spearman": 0.054633622811298764,
+        "top_k_pearson": 0.16028562188148499,
+        "top_k_spearman": 0.15365033315248658
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.1378956139087677,
+        "mean_pearson": 0.0340152271091938,
+        "max_spearman": 0.13140064874005725,
+        "mean_spearman": 0.03518968138965349,
+        "top_k_pearson": 0.1131577268242836,
+        "top_k_spearman": 0.11946447616455616
+      },
+      "Edema": {
+        "max_pearson": 0.24461498856544495,
+        "mean_pearson": 0.06329946964979172,
+        "max_spearman": 0.2647613000957099,
+        "mean_spearman": 0.06652806644531672,
+        "top_k_pearson": 0.20467126369476318,
+        "top_k_spearman": 0.2116382983806641
+      },
+      "Consolidation": {
+        "max_pearson": 0.17004519701004028,
+        "mean_pearson": 0.04050012305378914,
+        "max_spearman": 0.15151277817412903,
+        "mean_spearman": 0.03712900378035936,
+        "top_k_pearson": 0.14330121874809265,
+        "top_k_spearman": 0.13253797853155003
+      },
+      "Pneumonia": {
+        "max_pearson": 0.15819962322711945,
+        "mean_pearson": 0.03942233324050903,
+        "max_spearman": 0.1450198542424896,
+        "mean_spearman": 0.03946915367260014,
+        "top_k_pearson": 0.1339888572692871,
+        "top_k_spearman": 0.1328787203232373
+      },
+      "Atelectasis": {
+        "max_pearson": 0.1415719985961914,
+        "mean_pearson": 0.03516751527786255,
+        "max_spearman": 0.13455859345307616,
+        "mean_spearman": 0.036575847414773384,
+        "top_k_pearson": 0.12520530819892883,
+        "top_k_spearman": 0.12300123353539741
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.16422678530216217,
+        "mean_pearson": 0.04061710089445114,
+        "max_spearman": 0.16483994335866795,
+        "mean_spearman": 0.04068521902050714,
+        "top_k_pearson": 0.14572492241859436,
+        "top_k_spearman": 0.14407288416699388
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.21678781509399414,
+        "mean_pearson": 0.05443493276834488,
+        "max_spearman": 0.21591522733524562,
+        "mean_spearman": 0.05421599242117009,
+        "top_k_pearson": 0.18618938326835632,
+        "top_k_spearman": 0.18762715089967602
+      },
+      "Pleural Other": {
+        "max_pearson": 0.12452424317598343,
+        "mean_pearson": 0.03385002538561821,
+        "max_spearman": 0.13141498037881247,
+        "mean_spearman": 0.035701172881803536,
+        "top_k_pearson": 0.10992775857448578,
+        "top_k_spearman": 0.1143247338292491
+      },
+      "Fracture": {
+        "max_pearson": 0.14499279856681824,
+        "mean_pearson": 0.03711665794253349,
+        "max_spearman": 0.13449988262798088,
+        "mean_spearman": 0.03892285981330665,
+        "top_k_pearson": 0.12852224707603455,
+        "top_k_spearman": 0.12809917426228132
+      },
+      "Support Devices": {
+        "max_pearson": 0.3485583961009979,
+        "mean_pearson": 0.1046273410320282,
+        "max_spearman": 0.3632397781582953,
+        "mean_spearman": 0.10863268682436922,
+        "top_k_pearson": 0.3207530379295349,
+        "top_k_spearman": 0.332745516471198
+      }
+    },
+    "layer_0": {
+      "No Finding": {
+        "max_pearson": 0.29204046726226807,
+        "mean_pearson": 0.08435148745775223,
+        "max_spearman": 0.24524513290601851,
+        "mean_spearman": 0.08431525900743751,
+        "top_k_pearson": 0.2573176622390747,
+        "top_k_spearman": 0.22773741548923548
+      },
+      "Enlarged Cardiomediastinum": {
+        "max_pearson": 0.16249805688858032,
+        "mean_pearson": 0.04137921705842018,
+        "max_spearman": 0.16933967278837828,
+        "mean_spearman": 0.0409093029980326,
+        "top_k_pearson": 0.13889704644680023,
+        "top_k_spearman": 0.1425479597081337
+      },
+      "Cardiomegaly": {
+        "max_pearson": 0.3607165515422821,
+        "mean_pearson": 0.0992015078663826,
+        "max_spearman": 0.3584076750391032,
+        "mean_spearman": 0.09821447807343409,
+        "top_k_pearson": 0.29964104294776917,
+        "top_k_spearman": 0.29767694149123514
+      },
+      "Lung Lesion": {
+        "max_pearson": 0.20823095738887787,
+        "mean_pearson": 0.05607948824763298,
+        "max_spearman": 0.197565033372952,
+        "mean_spearman": 0.05524027995719377,
+        "top_k_pearson": 0.1868794858455658,
+        "top_k_spearman": 0.18140062155152864
+      },
+      "Airspace Opacity": {
+        "max_pearson": 0.20064756274223328,
+        "mean_pearson": 0.05475974455475807,
+        "max_spearman": 0.19144113805097093,
+        "mean_spearman": 0.05495009993667798,
+        "top_k_pearson": 0.17807146906852722,
+        "top_k_spearman": 0.1742646945886645
+      },
+      "Edema": {
+        "max_pearson": 0.3994201123714447,
+        "mean_pearson": 0.1294020414352417,
+        "max_spearman": 0.409279472242443,
+        "mean_spearman": 0.12967116308868742,
+        "top_k_pearson": 0.36351972818374634,
+        "top_k_spearman": 0.36633046055861485
+      },
+      "Consolidation": {
+        "max_pearson": 0.19614122807979584,
+        "mean_pearson": 0.050501227378845215,
+        "max_spearman": 0.19928659209956576,
+        "mean_spearman": 0.04946606279818915,
+        "top_k_pearson": 0.1759725660085678,
+        "top_k_spearman": 0.17333837844463312
+      },
+      "Pneumonia": {
+        "max_pearson": 0.22818206250667572,
+        "mean_pearson": 0.06504844129085541,
+        "max_spearman": 0.22478349082097393,
+        "mean_spearman": 0.06531917210217454,
+        "top_k_pearson": 0.2076709270477295,
+        "top_k_spearman": 0.20394062229814924
+      },
+      "Atelectasis": {
+        "max_pearson": 0.24291005730628967,
+        "mean_pearson": 0.06528814882040024,
+        "max_spearman": 0.2510618701846305,
+        "mean_spearman": 0.06453617878698831,
+        "top_k_pearson": 0.2182275503873825,
+        "top_k_spearman": 0.22077884709804546
+      },
+      "Pneumothorax": {
+        "max_pearson": 0.2543211281299591,
+        "mean_pearson": 0.05935164913535118,
+        "max_spearman": 0.2234095651820569,
+        "mean_spearman": 0.05911057064181702,
+        "top_k_pearson": 0.19908347725868225,
+        "top_k_spearman": 0.18503291722029203
+      },
+      "Pleural Effusion": {
+        "max_pearson": 0.4772225022315979,
+        "mean_pearson": 0.1371109038591385,
+        "max_spearman": 0.4763736198041119,
+        "mean_spearman": 0.13596650734520285,
+        "top_k_pearson": 0.41471561789512634,
+        "top_k_spearman": 0.413109960590129
+      },
+      "Pleural Other": {
+        "max_pearson": 0.19798244535923004,
+        "mean_pearson": 0.05523590371012688,
+        "max_spearman": 0.17838264712294769,
+        "mean_spearman": 0.055638054355512424,
+        "top_k_pearson": 0.17463301122188568,
+        "top_k_spearman": 0.1679340144708995
+      },
+      "Fracture": {
+        "max_pearson": 0.1964525282382965,
+        "mean_pearson": 0.06189246475696564,
+        "max_spearman": 0.19803470546114224,
+        "mean_spearman": 0.06216780812745337,
+        "top_k_pearson": 0.1802981197834015,
+        "top_k_spearman": 0.1808916375559607
+      },
+      "Support Devices": {
+        "max_pearson": 0.5685272216796875,
+        "mean_pearson": 0.18865036964416504,
+        "max_spearman": 0.5633353347102613,
+        "mean_spearman": 0.18956102818582332,
+        "top_k_pearson": 0.514443576335907,
+        "top_k_spearman": 0.513723932885118
+      }
+    }
+  },
+  "threshold_baselines": {
+    "layer_-12": {
+      "averages": {
+        "accuracy": 0.6882168925964548,
+        "balanced_accuracy": 0.5970138360897647,
+        "precision": 0.23542784419934243,
+        "recall": 0.5463122650156335,
+        "f1": 0.32100848239224616,
+        "auc": 0.6449442804723732
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8992700729927007,
+          "balanced_accuracy": 0.7087786259541985,
+          "precision": 0.21739130434782608,
+          "recall": 0.5,
+          "f1": 0.30303030303030304,
+          "auc": 0.7504325699745547,
+          "best_correlation": 0.2034277617931366,
+          "best_dimension": 110.0,
+          "best_threshold": 0.02836212925612927
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8642335766423358,
+          "balanced_accuracy": 0.5741818058107097,
+          "precision": 0.15942028985507245,
+          "recall": 0.2391304347826087,
+          "f1": 0.19130434782608696,
+          "auc": 0.6338708579982308,
+          "best_correlation": 0.14134597778320312,
+          "best_dimension": 1045.0,
+          "best_threshold": 0.030694282427430154
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.30364963503649633,
+          "balanced_accuracy": 0.5391212143760696,
+          "precision": 0.2353896103896104,
+          "recall": 0.9602649006622517,
+          "f1": 0.37809647979139505,
+          "auc": 0.5825086191928963,
+          "best_correlation": 0.12944220006465912,
+          "best_dimension": 458.0,
+          "best_threshold": 0.011226853542029857
+        },
+        "Lung Lesion": {
+          "accuracy": 0.8627737226277372,
+          "balanced_accuracy": 0.5885628134702651,
+          "precision": 0.2028985507246377,
+          "recall": 0.2641509433962264,
+          "f1": 0.22950819672131148,
+          "auc": 0.6723190828755672,
+          "best_correlation": 0.1687738299369812,
+          "best_dimension": 882.0,
+          "best_threshold": 0.011961779743433
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.5036496350364964,
+          "balanced_accuracy": 0.57305284161277,
+          "precision": 0.291970802919708,
+          "recall": 0.7100591715976331,
+          "f1": 0.41379310344827586,
+          "auc": 0.5989174808495022,
+          "best_correlation": 0.13411422073841095,
+          "best_dimension": 462.0,
+          "best_threshold": -0.026758557930588723
+        },
+        "Edema": {
+          "accuracy": 0.6481751824817519,
+          "balanced_accuracy": 0.6383838383838384,
+          "precision": 0.30656934306569344,
+          "recall": 0.6222222222222222,
+          "f1": 0.41075794621026895,
+          "auc": 0.6708148148148149,
+          "best_correlation": 0.2192867249250412,
+          "best_dimension": 1068.0,
+          "best_threshold": -0.015379381738603115
+        },
+        "Consolidation": {
+          "accuracy": 0.8613138686131386,
+          "balanced_accuracy": 0.5910032932091756,
+          "precision": 0.21739130434782608,
+          "recall": 0.26785714285714285,
+          "f1": 0.24,
+          "auc": 0.6131898705428118,
+          "best_correlation": 0.13520722091197968,
+          "best_dimension": 1131.0,
+          "best_threshold": 0.034750045835971834
+        },
+        "Pneumonia": {
+          "accuracy": 0.7094890510948905,
+          "balanced_accuracy": 0.6429292929292929,
+          "precision": 0.15048543689320387,
+          "recall": 0.5636363636363636,
+          "f1": 0.23754789272030652,
+          "auc": 0.6425685425685426,
+          "best_correlation": 0.1327439397573471,
+          "best_dimension": 334.0,
+          "best_threshold": -0.004651478305459022
+        },
+        "Atelectasis": {
+          "accuracy": 0.3562043795620438,
+          "balanced_accuracy": 0.5315074477823084,
+          "precision": 0.30194805194805197,
+          "recall": 0.9441624365482234,
+          "f1": 0.4575645756457565,
+          "auc": 0.581998418906549,
+          "best_correlation": 0.13799837231636047,
+          "best_dimension": 119.0,
+          "best_threshold": -0.009838246554136275
+        },
+        "Pneumothorax": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.5720532010087042,
+          "precision": 0.13043478260869565,
+          "recall": 0.23684210526315788,
+          "f1": 0.16822429906542055,
+          "auc": 0.663426340193606,
+          "best_correlation": 0.1346333771944046,
+          "best_dimension": 674.0,
+          "best_threshold": 0.0013742421055212626
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.5021897810218978,
+          "balanced_accuracy": 0.5657740317934492,
+          "precision": 0.43795620437956206,
+          "recall": 0.8791208791208791,
+          "f1": 0.584652862362972,
+          "auc": 0.6009104164443969,
+          "best_correlation": 0.18309739232063293,
+          "best_dimension": 798.0,
+          "best_threshold": -0.0009757933439686894
+        },
+        "Pleural Other": {
+          "accuracy": 0.8802919708029197,
+          "balanced_accuracy": 0.5722727272727273,
+          "precision": 0.08695652173913043,
+          "recall": 0.24,
+          "f1": 0.1276595744680851,
+          "auc": 0.6697575757575758,
+          "best_correlation": 0.12357539683580399,
+          "best_dimension": 636.0,
+          "best_threshold": 0.02500281594693661
+        },
+        "Fracture": {
+          "accuracy": 0.7941605839416058,
+          "balanced_accuracy": 0.6327519379844961,
+          "precision": 0.13138686131386862,
+          "recall": 0.45,
+          "f1": 0.2033898305084746,
+          "auc": 0.6680232558139534,
+          "best_correlation": 0.14739945530891418,
+          "best_dimension": 124.0,
+          "best_threshold": 0.012613932602107527
+        },
+        "Support Devices": {
+          "accuracy": 0.5795620437956205,
+          "balanced_accuracy": 0.6278206336686993,
+          "precision": 0.4257907542579075,
+          "recall": 0.7709251101321586,
+          "f1": 0.54858934169279,
+          "auc": 0.6804820806802224,
+          "best_correlation": 0.29213327169418335,
+          "best_dimension": 798.0,
+          "best_threshold": 0.00924579482525587
+        }
+      }
+    },
+    "layer_-11": {
+      "averages": {
+        "accuracy": 0.6639207507820647,
+        "balanced_accuracy": 0.601968206785795,
+        "precision": 0.22829586552915154,
+        "recall": 0.5910727390186877,
+        "f1": 0.32219091242837,
+        "auc": 0.6501836753845576
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.9021897810218978,
+          "balanced_accuracy": 0.7262086513994911,
+          "precision": 0.2318840579710145,
+          "recall": 0.5333333333333333,
+          "f1": 0.32323232323232326,
+          "auc": 0.7519592875318066,
+          "best_correlation": 0.20434845983982086,
+          "best_dimension": 110.0,
+          "best_threshold": 0.019370498508214953
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.708029197080292,
+          "balanced_accuracy": 0.6417636252296387,
+          "precision": 0.1262135922330097,
+          "recall": 0.5652173913043478,
+          "f1": 0.20634920634920634,
+          "auc": 0.6737429407362047,
+          "best_correlation": 0.13641931116580963,
+          "best_dimension": 1134.0,
+          "best_threshold": 0.00949849411845207
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.30364963503649633,
+          "balanced_accuracy": 0.5391212143760696,
+          "precision": 0.2353896103896104,
+          "recall": 0.9602649006622517,
+          "f1": 0.37809647979139505,
+          "auc": 0.5774735223354913,
+          "best_correlation": 0.12664742767810822,
+          "best_dimension": 458.0,
+          "best_threshold": 0.009946669265627862
+        },
+        "Lung Lesion": {
+          "accuracy": 0.8627737226277372,
+          "balanced_accuracy": 0.5885628134702651,
+          "precision": 0.2028985507246377,
+          "recall": 0.2641509433962264,
+          "f1": 0.22950819672131148,
+          "auc": 0.6849773107236685,
+          "best_correlation": 0.1762317270040512,
+          "best_dimension": 1021.0,
+          "best_threshold": 0.007417698856443168
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.4481751824817518,
+          "balanced_accuracy": 0.5660749506903353,
+          "precision": 0.2818371607515658,
+          "recall": 0.7988165680473372,
+          "f1": 0.4166666666666667,
+          "auc": 0.5804779597266181,
+          "best_correlation": 0.12625068426132202,
+          "best_dimension": 485.0,
+          "best_threshold": -0.017128265276551247
+        },
+        "Edema": {
+          "accuracy": 0.5240875912408759,
+          "balanced_accuracy": 0.6337710437710438,
+          "precision": 0.26763990267639903,
+          "recall": 0.8148148148148148,
+          "f1": 0.40293040293040294,
+          "auc": 0.6602289562289563,
+          "best_correlation": 0.21658870577812195,
+          "best_dimension": 1055.0,
+          "best_threshold": -0.0038401617202907796
+        },
+        "Consolidation": {
+          "accuracy": 0.6204379562043796,
+          "balanced_accuracy": 0.6225158982511924,
+          "precision": 0.12773722627737227,
+          "recall": 0.625,
+          "f1": 0.21212121212121213,
+          "auc": 0.6406995230524642,
+          "best_correlation": 0.14334514737129211,
+          "best_dimension": 1048.0,
+          "best_threshold": -0.01169287022203207
+        },
+        "Pneumonia": {
+          "accuracy": 0.781021897810219,
+          "balanced_accuracy": 0.5988455988455988,
+          "precision": 0.15328467153284672,
+          "recall": 0.38181818181818183,
+          "f1": 0.21875,
+          "auc": 0.6256854256854256,
+          "best_correlation": 0.134971022605896,
+          "best_dimension": 207.0,
+          "best_threshold": 0.017379433289170267
+        },
+        "Atelectasis": {
+          "accuracy": 0.4656934306569343,
+          "balanced_accuracy": 0.5614338021136723,
+          "precision": 0.3235908141962422,
+          "recall": 0.7868020304568528,
+          "f1": 0.45857988165680474,
+          "auc": 0.5789402513106433,
+          "best_correlation": 0.1196252852678299,
+          "best_dimension": 52.0,
+          "best_threshold": 0.0009669927880167953
+        },
+        "Pneumothorax": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.5720532010087042,
+          "precision": 0.13043478260869565,
+          "recall": 0.23684210526315788,
+          "f1": 0.16822429906542055,
+          "auc": 0.6699341088424307,
+          "best_correlation": 0.13802310824394226,
+          "best_dimension": 674.0,
+          "best_threshold": -0.0002287971787154673
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.472992700729927,
+          "balanced_accuracy": 0.5563320174970661,
+          "precision": 0.42857142857142855,
+          "recall": 0.967032967032967,
+          "f1": 0.59392575928009,
+          "auc": 0.5958071055158434,
+          "best_correlation": 0.1819143295288086,
+          "best_dimension": 572.0,
+          "best_threshold": -0.022989263758063316
+        },
+        "Pleural Other": {
+          "accuracy": 0.8861313868613139,
+          "balanced_accuracy": 0.6137878787878788,
+          "precision": 0.11594202898550725,
+          "recall": 0.32,
+          "f1": 0.1702127659574468,
+          "auc": 0.6855151515151515,
+          "best_correlation": 0.13443192839622498,
+          "best_dimension": 636.0,
+          "best_threshold": 0.02097989730536938
+        },
+        "Fracture": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.5792635658914729,
+          "precision": 0.14492753623188406,
+          "recall": 0.25,
+          "f1": 0.1834862385321101,
+          "auc": 0.6901937984496124,
+          "best_correlation": 0.15131355822086334,
+          "best_dimension": 880.0,
+          "best_threshold": -0.004922221321612595
+        },
+        "Support Devices": {
+          "accuracy": 0.5795620437956205,
+          "balanced_accuracy": 0.6278206336686993,
+          "precision": 0.4257907542579075,
+          "recall": 0.7709251101321586,
+          "f1": 0.54858934169279,
+          "auc": 0.6869361137294885,
+          "best_correlation": 0.3016635775566101,
+          "best_dimension": 798.0,
+          "best_threshold": 0.013573280535638332
+        }
+      }
+    },
+    "layer_-10": {
+      "averages": {
+        "accuracy": 0.6417101147028154,
+        "balanced_accuracy": 0.6037305272795281,
+        "precision": 0.22309744275110552,
+        "recall": 0.6244970559675991,
+        "f1": 0.3203975035437419,
+        "auc": 0.648965940168882
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8992700729927007,
+          "balanced_accuracy": 0.7087786259541985,
+          "precision": 0.21739130434782608,
+          "recall": 0.5,
+          "f1": 0.30303030303030304,
+          "auc": 0.7590839694656489,
+          "best_correlation": 0.21269869804382324,
+          "best_dimension": 110.0,
+          "best_threshold": 0.017381208017468456
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.5328467153284672,
+          "balanced_accuracy": 0.6285636524460774,
+          "precision": 0.09941520467836257,
+          "recall": 0.7391304347826086,
+          "f1": 0.17525773195876287,
+          "auc": 0.6440089814247806,
+          "best_correlation": 0.1414058953523636,
+          "best_dimension": 1045.0,
+          "best_threshold": 0.013995153829455376
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.3094890510948905,
+          "balanced_accuracy": 0.547616390108391,
+          "precision": 0.23863636363636365,
+          "recall": 0.9735099337748344,
+          "f1": 0.3833116036505867,
+          "auc": 0.5755388545774734,
+          "best_correlation": 0.12852951884269714,
+          "best_dimension": 458.0,
+          "best_threshold": 0.0113840714097023
+        },
+        "Lung Lesion": {
+          "accuracy": 0.7839416058394161,
+          "balanced_accuracy": 0.6063410556484357,
+          "precision": 0.15328467153284672,
+          "recall": 0.39622641509433965,
+          "f1": 0.22105263157894736,
+          "auc": 0.6833651779316934,
+          "best_correlation": 0.173811674118042,
+          "best_dimension": 1021.0,
+          "best_threshold": 0.0038694971706718217
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.44233576642335765,
+          "balanced_accuracy": 0.5582198064308976,
+          "precision": 0.2776617954070981,
+          "recall": 0.7869822485207101,
+          "f1": 0.4104938271604938,
+          "auc": 0.5781844869501398,
+          "best_correlation": 0.12225767970085144,
+          "best_dimension": 485.0,
+          "best_threshold": -0.017956653237342836
+        },
+        "Edema": {
+          "accuracy": 0.7036496350364964,
+          "balanced_accuracy": 0.631010101010101,
+          "precision": 0.33495145631067963,
+          "recall": 0.5111111111111111,
+          "f1": 0.4046920821114369,
+          "auc": 0.6631111111111111,
+          "best_correlation": 0.2176121473312378,
+          "best_dimension": 708.0,
+          "best_threshold": 0.01343300137668848
+        },
+        "Consolidation": {
+          "accuracy": 0.7824817518248175,
+          "balanced_accuracy": 0.6050136270724505,
+          "precision": 0.16058394160583941,
+          "recall": 0.39285714285714285,
+          "f1": 0.22797927461139897,
+          "auc": 0.6420622302975244,
+          "best_correlation": 0.14182108640670776,
+          "best_dimension": 1043.0,
+          "best_threshold": 0.03680331334471703
+        },
+        "Pneumonia": {
+          "accuracy": 0.6978102189781021,
+          "balanced_accuracy": 0.6033910533910534,
+          "precision": 0.13106796116504854,
+          "recall": 0.4909090909090909,
+          "f1": 0.20689655172413793,
+          "auc": 0.6283694083694084,
+          "best_correlation": 0.1316698044538498,
+          "best_dimension": 166.0,
+          "best_threshold": 0.001090865326113998
+        },
+        "Atelectasis": {
+          "accuracy": 0.35036496350364965,
+          "balanced_accuracy": 0.5243821253224599,
+          "precision": 0.2987012987012987,
+          "recall": 0.934010152284264,
+          "f1": 0.45264452644526443,
+          "auc": 0.5712428226678872,
+          "best_correlation": 0.12330712378025055,
+          "best_dimension": 377.0,
+          "best_threshold": -0.018115272000432014
+        },
+        "Pneumothorax": {
+          "accuracy": 0.8671532846715329,
+          "balanced_accuracy": 0.5581225087448141,
+          "precision": 0.11594202898550725,
+          "recall": 0.21052631578947367,
+          "f1": 0.14953271028037382,
+          "auc": 0.6625721955584479,
+          "best_correlation": 0.13277669250965118,
+          "best_dimension": 674.0,
+          "best_threshold": 0.0008391595911234629
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.4642335766423358,
+          "balanced_accuracy": 0.5471967353035314,
+          "precision": 0.4237012987012987,
+          "recall": 0.9560439560439561,
+          "f1": 0.5871766029246345,
+          "auc": 0.59548703723461,
+          "best_correlation": 0.17735856771469116,
+          "best_dimension": 572.0,
+          "best_threshold": -0.022600845620036124
+        },
+        "Pleural Other": {
+          "accuracy": 0.891970802919708,
+          "balanced_accuracy": 0.6553030303030303,
+          "precision": 0.14492753623188406,
+          "recall": 0.4,
+          "f1": 0.2127659574468085,
+          "auc": 0.6944242424242424,
+          "best_correlation": 0.1382448524236679,
+          "best_dimension": 636.0,
+          "best_threshold": 0.017323543876409532
+        },
+        "Fracture": {
+          "accuracy": 0.708029197080292,
+          "balanced_accuracy": 0.645639534883721,
+          "precision": 0.11165048543689321,
+          "recall": 0.575,
+          "f1": 0.18699186991869918,
+          "auc": 0.6936821705426357,
+          "best_correlation": 0.14902830123901367,
+          "best_dimension": 880.0,
+          "best_threshold": -0.013525617122650147
+        },
+        "Support Devices": {
+          "accuracy": 0.5503649635036496,
+          "balanced_accuracy": 0.6326491352942308,
+          "precision": 0.4154488517745303,
+          "recall": 0.8766519823788547,
+          "f1": 0.5637393767705382,
+          "auc": 0.6943904738087451,
+          "best_correlation": 0.3254833519458771,
+          "best_dimension": 281.0,
+          "best_threshold": -0.002062694495543838
+        }
+      }
+    },
+    "layer_-9": {
+      "averages": {
+        "accuracy": 0.6639207507820645,
+        "balanced_accuracy": 0.6081457445377714,
+        "precision": 0.2284444413363446,
+        "recall": 0.5951612526452432,
+        "f1": 0.3224676256357259,
+        "auc": 0.6538686127295972
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8992700729927007,
+          "balanced_accuracy": 0.7087786259541985,
+          "precision": 0.21739130434782608,
+          "recall": 0.5,
+          "f1": 0.30303030303030304,
+          "auc": 0.7562849872773536,
+          "best_correlation": 0.21355949342250824,
+          "best_dimension": 110.0,
+          "best_threshold": 0.01364271119236946
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.6204379562043796,
+          "balanced_accuracy": 0.6351636388378581,
+          "precision": 0.10948905109489052,
+          "recall": 0.6521739130434783,
+          "f1": 0.1875,
+          "auc": 0.6704429475403143,
+          "best_correlation": 0.13950495421886444,
+          "best_dimension": 828.0,
+          "best_threshold": -0.012687533907592297
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.37372262773722625,
+          "balanced_accuracy": 0.5603157476994816,
+          "precision": 0.24635036496350365,
+          "recall": 0.8940397350993378,
+          "f1": 0.38626609442060084,
+          "auc": 0.5725624426420616,
+          "best_correlation": 0.12648357450962067,
+          "best_dimension": 458.0,
+          "best_threshold": 0.014136635139584542
+        },
+        "Lung Lesion": {
+          "accuracy": 0.7153284671532847,
+          "balanced_accuracy": 0.6642285646047289,
+          "precision": 0.1553398058252427,
+          "recall": 0.6037735849056604,
+          "f1": 0.2471042471042471,
+          "auc": 0.7018748507284451,
+          "best_correlation": 0.1680566817522049,
+          "best_dimension": 244.0,
+          "best_threshold": 0.03127866610884666
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.5007299270072992,
+          "balanced_accuracy": 0.5691252694830513,
+          "precision": 0.2895377128953771,
+          "recall": 0.7041420118343196,
+          "f1": 0.4103448275862069,
+          "auc": 0.5827255630475666,
+          "best_correlation": 0.13020892441272736,
+          "best_dimension": 485.0,
+          "best_threshold": -0.010372878238558769
+        },
+        "Edema": {
+          "accuracy": 0.5781021897810219,
+          "balanced_accuracy": 0.6226936026936027,
+          "precision": 0.27485380116959063,
+          "recall": 0.6962962962962963,
+          "f1": 0.3941299790356394,
+          "auc": 0.6607003367003368,
+          "best_correlation": 0.22749829292297363,
+          "best_dimension": 252.0,
+          "best_threshold": -0.0010273378575220704
+        },
+        "Consolidation": {
+          "accuracy": 0.8613138686131386,
+          "balanced_accuracy": 0.5910032932091756,
+          "precision": 0.21739130434782608,
+          "recall": 0.26785714285714285,
+          "f1": 0.24,
+          "auc": 0.6228139904610492,
+          "best_correlation": 0.14306339621543884,
+          "best_dimension": 493.0,
+          "best_threshold": 0.015771570056676867
+        },
+        "Pneumonia": {
+          "accuracy": 0.7781021897810219,
+          "balanced_accuracy": 0.5889610389610389,
+          "precision": 0.145985401459854,
+          "recall": 0.36363636363636365,
+          "f1": 0.20833333333333334,
+          "auc": 0.6396825396825396,
+          "best_correlation": 0.13650432229042053,
+          "best_dimension": 334.0,
+          "best_threshold": 0.000620321999303997
+        },
+        "Atelectasis": {
+          "accuracy": 0.4656934306569343,
+          "balanced_accuracy": 0.5614338021136723,
+          "precision": 0.3235908141962422,
+          "recall": 0.7868020304568528,
+          "f1": 0.45857988165680474,
+          "auc": 0.5812390779728718,
+          "best_correlation": 0.12736330926418304,
+          "best_dimension": 310.0,
+          "best_threshold": 0.007877876795828341
+        },
+        "Pneumothorax": {
+          "accuracy": 0.872992700729927,
+          "balanced_accuracy": 0.5859838932725941,
+          "precision": 0.14492753623188406,
+          "recall": 0.2631578947368421,
+          "f1": 0.18691588785046728,
+          "auc": 0.6520377450581631,
+          "best_correlation": 0.1254088580608368,
+          "best_dimension": 674.0,
+          "best_threshold": -0.0012844989774748667
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.49343065693430654,
+          "balanced_accuracy": 0.5566387495999147,
+          "precision": 0.4324817518248175,
+          "recall": 0.8681318681318682,
+          "f1": 0.5773447015834349,
+          "auc": 0.6114548881539172,
+          "best_correlation": 0.19978702068328857,
+          "best_dimension": 798.0,
+          "best_threshold": 0.0093297116458416
+        },
+        "Pleural Other": {
+          "accuracy": 0.8890510948905109,
+          "balanced_accuracy": 0.6345454545454545,
+          "precision": 0.13043478260869565,
+          "recall": 0.36,
+          "f1": 0.19148936170212766,
+          "auc": 0.7204848484848485,
+          "best_correlation": 0.15818683803081512,
+          "best_dimension": 636.0,
+          "best_threshold": 0.01390271093696356
+        },
+        "Fracture": {
+          "accuracy": 0.6992700729927007,
+          "balanced_accuracy": 0.6058139534883721,
+          "precision": 0.0970873786407767,
+          "recall": 0.5,
+          "f1": 0.16260162601626016,
+          "auc": 0.678953488372093,
+          "best_correlation": 0.14409679174423218,
+          "best_dimension": 880.0,
+          "best_threshold": -0.015204895846545703
+        },
+        "Support Devices": {
+          "accuracy": 0.5474452554744526,
+          "balanced_accuracy": 0.6293547890656561,
+          "precision": 0.4133611691022965,
+          "recall": 0.8722466960352423,
+          "f1": 0.5609065155807366,
+          "auc": 0.7029028720927996,
+          "best_correlation": 0.34230026602745056,
+          "best_dimension": 281.0,
+          "best_threshold": -0.002742660744115711
+        }
+      }
+    },
+    "layer_-8": {
+      "averages": {
+        "accuracy": 0.6680917622523462,
+        "balanced_accuracy": 0.6101050308215034,
+        "precision": 0.2293231155076876,
+        "recall": 0.5987885626472178,
+        "f1": 0.3267594090443363,
+        "auc": 0.6583052722019778
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8992700729927007,
+          "balanced_accuracy": 0.7087786259541985,
+          "precision": 0.21739130434782608,
+          "recall": 0.5,
+          "f1": 0.30303030303030304,
+          "auc": 0.756030534351145,
+          "best_correlation": 0.2174200862646103,
+          "best_dimension": 110.0,
+          "best_threshold": 0.012218756787478925
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8642335766423358,
+          "balanced_accuracy": 0.5741818058107097,
+          "precision": 0.15942028985507245,
+          "recall": 0.2391304347826087,
+          "f1": 0.19130434782608696,
+          "auc": 0.6602027624685309,
+          "best_correlation": 0.14329195022583008,
+          "best_dimension": 529.0,
+          "best_threshold": 0.020513450354337694
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.3708029197080292,
+          "balanced_accuracy": 0.5560681598333209,
+          "precision": 0.24452554744525548,
+          "recall": 0.8874172185430463,
+          "f1": 0.3834048640915594,
+          "auc": 0.5846169109804797,
+          "best_correlation": 0.1234806478023529,
+          "best_dimension": 683.0,
+          "best_threshold": 0.00660248873755336
+        },
+        "Lung Lesion": {
+          "accuracy": 0.7956204379562044,
+          "balanced_accuracy": 0.6472414616670648,
+          "precision": 0.18248175182481752,
+          "recall": 0.4716981132075472,
+          "f1": 0.2631578947368421,
+          "auc": 0.7121745880105086,
+          "best_correlation": 0.17545641958713531,
+          "best_dimension": 244.0,
+          "best_threshold": 0.03355802744626999
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.4364963503649635,
+          "balanced_accuracy": 0.55036466217146,
+          "precision": 0.27348643006263046,
+          "recall": 0.7751479289940828,
+          "f1": 0.404320987654321,
+          "auc": 0.5763726434567222,
+          "best_correlation": 0.11154928058385849,
+          "best_dimension": 684.0,
+          "best_threshold": 0.011521674320101738
+        },
+        "Edema": {
+          "accuracy": 0.6452554744525547,
+          "balanced_accuracy": 0.6337710437710438,
+          "precision": 0.3029197080291971,
+          "recall": 0.6148148148148148,
+          "f1": 0.4058679706601467,
+          "auc": 0.6746127946127947,
+          "best_correlation": 0.23262158036231995,
+          "best_dimension": 708.0,
+          "best_threshold": 0.004465095698833466
+        },
+        "Consolidation": {
+          "accuracy": 0.6992700729927007,
+          "balanced_accuracy": 0.6085055643879174,
+          "precision": 0.13592233009708737,
+          "recall": 0.5,
+          "f1": 0.21374045801526717,
+          "auc": 0.6312173518055871,
+          "best_correlation": 0.1327703446149826,
+          "best_dimension": 1043.0,
+          "best_threshold": 0.029241099953651428
+        },
+        "Pneumonia": {
+          "accuracy": 0.781021897810219,
+          "balanced_accuracy": 0.5988455988455988,
+          "precision": 0.15328467153284672,
+          "recall": 0.38181818181818183,
+          "f1": 0.21875,
+          "auc": 0.6416450216450217,
+          "best_correlation": 0.14425043761730194,
+          "best_dimension": 334.0,
+          "best_threshold": -0.0005286411033011957
+        },
+        "Atelectasis": {
+          "accuracy": 0.41751824817518246,
+          "balanced_accuracy": 0.5548649829408339,
+          "precision": 0.3156934306569343,
+          "recall": 0.8781725888324873,
+          "f1": 0.46442953020134226,
+          "auc": 0.5841308146792045,
+          "best_correlation": 0.132858544588089,
+          "best_dimension": 310.0,
+          "best_threshold": 0.006400348898023368
+        },
+        "Pneumothorax": {
+          "accuracy": 0.7051094890510949,
+          "balanced_accuracy": 0.6333482469698202,
+          "precision": 0.10194174757281553,
+          "recall": 0.5526315789473685,
+          "f1": 0.1721311475409836,
+          "auc": 0.6666802245180183,
+          "best_correlation": 0.133388951420784,
+          "best_dimension": 655.0,
+          "best_threshold": 0.024942217767238616
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.5138686131386861,
+          "balanced_accuracy": 0.5779544080514954,
+          "precision": 0.44525547445255476,
+          "recall": 0.8937728937728938,
+          "f1": 0.5943970767356882,
+          "auc": 0.6154379600981542,
+          "best_correlation": 0.2079170197248459,
+          "best_dimension": 230.0,
+          "best_threshold": -0.006519071478396654
+        },
+        "Pleural Other": {
+          "accuracy": 0.891970802919708,
+          "balanced_accuracy": 0.6553030303030303,
+          "precision": 0.14492753623188406,
+          "recall": 0.4,
+          "f1": 0.2127659574468085,
+          "auc": 0.7373333333333333,
+          "best_correlation": 0.16231605410575867,
+          "best_dimension": 636.0,
+          "best_threshold": 0.007839024625718597
+        },
+        "Fracture": {
+          "accuracy": 0.7912408759124088,
+          "balanced_accuracy": 0.6194767441860465,
+          "precision": 0.12408759124087591,
+          "recall": 0.425,
+          "f1": 0.192090395480226,
+          "auc": 0.6806589147286822,
+          "best_correlation": 0.1491186022758484,
+          "best_dimension": 694.0,
+          "best_threshold": 0.010326885618269447
+        },
+        "Support Devices": {
+          "accuracy": 0.5416058394160584,
+          "balanced_accuracy": 0.6227660966085067,
+          "precision": 0.4091858037578288,
+          "recall": 0.8634361233480177,
+          "f1": 0.5552407932011332,
+          "auc": 0.6951599561395071,
+          "best_correlation": 0.32709208130836487,
+          "best_dimension": 281.0,
+          "best_threshold": -0.004060655739158393
+        }
+      }
+    },
+    "layer_-7": {
+      "averages": {
+        "accuracy": 0.6663190823774764,
+        "balanced_accuracy": 0.6119420772730769,
+        "precision": 0.23399391820902807,
+        "recall": 0.6015079940799994,
+        "f1": 0.3287019125055123,
+        "auc": 0.6615278285211753
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8992700729927007,
+          "balanced_accuracy": 0.7087786259541985,
+          "precision": 0.21739130434782608,
+          "recall": 0.5,
+          "f1": 0.30303030303030304,
+          "auc": 0.7507888040712468,
+          "best_correlation": 0.21869438886642456,
+          "best_dimension": 110.0,
+          "best_threshold": 0.012440832890570163
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.7912408759124088,
+          "balanced_accuracy": 0.6258420085731782,
+          "precision": 0.145985401459854,
+          "recall": 0.43478260869565216,
+          "f1": 0.2185792349726776,
+          "auc": 0.6705790297339593,
+          "best_correlation": 0.14012283086776733,
+          "best_dimension": 1134.0,
+          "best_threshold": 0.02072073929011822
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.42773722627737226,
+          "balanced_accuracy": 0.5569610834139445,
+          "precision": 0.24843423799582465,
+          "recall": 0.7880794701986755,
+          "f1": 0.37777777777777777,
+          "auc": 0.5888086911228514,
+          "best_correlation": 0.1438293755054474,
+          "best_dimension": 458.0,
+          "best_threshold": 0.016772283613681792
+        },
+        "Lung Lesion": {
+          "accuracy": 0.8686131386861314,
+          "balanced_accuracy": 0.6090130164795796,
+          "precision": 0.2318840579710145,
+          "recall": 0.3018867924528302,
+          "f1": 0.26229508196721313,
+          "auc": 0.6971877239073322,
+          "best_correlation": 0.1884010285139084,
+          "best_dimension": 1021.0,
+          "best_threshold": 0.00727547286078334
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.37664233576642336,
+          "balanced_accuracy": 0.5384902068712445,
+          "precision": 0.2645985401459854,
+          "recall": 0.8579881656804734,
+          "f1": 0.40446304044630405,
+          "auc": 0.5886083207192331,
+          "best_correlation": 0.13044588267803192,
+          "best_dimension": 684.0,
+          "best_threshold": 0.011115907877683642
+        },
+        "Edema": {
+          "accuracy": 0.6510948905109489,
+          "balanced_accuracy": 0.642996632996633,
+          "precision": 0.3102189781021898,
+          "recall": 0.6296296296296297,
+          "f1": 0.4156479217603912,
+          "auc": 0.6852929292929294,
+          "best_correlation": 0.24523554742336273,
+          "best_dimension": 708.0,
+          "best_threshold": 0.005447119567543268
+        },
+        "Consolidation": {
+          "accuracy": 0.7051094890510949,
+          "balanced_accuracy": 0.627952532364297,
+          "precision": 0.14563106796116504,
+          "recall": 0.5357142857142857,
+          "f1": 0.22900763358778625,
+          "auc": 0.6379741085623439,
+          "best_correlation": 0.1382228285074234,
+          "best_dimension": 1043.0,
+          "best_threshold": 0.029299907013773916
+        },
+        "Pneumonia": {
+          "accuracy": 0.7007299270072993,
+          "balanced_accuracy": 0.6132756132756132,
+          "precision": 0.13592233009708737,
+          "recall": 0.509090909090909,
+          "f1": 0.21455938697318008,
+          "auc": 0.6478787878787878,
+          "best_correlation": 0.1485459953546524,
+          "best_dimension": 334.0,
+          "best_threshold": -0.003624574514105917
+        },
+        "Atelectasis": {
+          "accuracy": 0.4116788321167883,
+          "balanced_accuracy": 0.5477396604809853,
+          "precision": 0.31204379562043794,
+          "recall": 0.868020304568528,
+          "f1": 0.4590604026845638,
+          "auc": 0.6008051094283099,
+          "best_correlation": 0.15386126935482025,
+          "best_dimension": 310.0,
+          "best_threshold": 0.00487584611400962
+        },
+        "Pneumothorax": {
+          "accuracy": 0.872992700729927,
+          "balanced_accuracy": 0.5859838932725941,
+          "precision": 0.14492753623188406,
+          "recall": 0.2631578947368421,
+          "f1": 0.18691588785046728,
+          "auc": 0.6676970633693973,
+          "best_correlation": 0.13648347556591034,
+          "best_dimension": 655.0,
+          "best_threshold": 0.03100520111620426
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.5051094890510949,
+          "balanced_accuracy": 0.5688191258579608,
+          "precision": 0.4397810218978102,
+          "recall": 0.8827838827838828,
+          "f1": 0.587088915956151,
+          "auc": 0.620390127671681,
+          "best_correlation": 0.2059515118598938,
+          "best_dimension": 545.0,
+          "best_threshold": -0.02506026327610016
+        },
+        "Pleural Other": {
+          "accuracy": 0.8890510948905109,
+          "balanced_accuracy": 0.6345454545454545,
+          "precision": 0.13043478260869565,
+          "recall": 0.36,
+          "f1": 0.19148936170212766,
+          "auc": 0.7153333333333334,
+          "best_correlation": 0.14715522527694702,
+          "best_dimension": 636.0,
+          "best_threshold": 0.006698751356452704
+        },
+        "Fracture": {
+          "accuracy": 0.6204379562043796,
+          "balanced_accuracy": 0.6460271317829458,
+          "precision": 0.09854014598540146,
+          "recall": 0.675,
+          "f1": 0.17197452229299362,
+          "auc": 0.669031007751938,
+          "best_correlation": 0.1535564363002777,
+          "best_dimension": 548.0,
+          "best_threshold": 0.006970172002911567
+        },
+        "Support Devices": {
+          "accuracy": 0.6087591240875913,
+          "balanced_accuracy": 0.6607640959544466,
+          "precision": 0.45012165450121655,
+          "recall": 0.8149779735682819,
+          "f1": 0.5799373040752351,
+          "auc": 0.7210145624531096,
+          "best_correlation": 0.36152756214141846,
+          "best_dimension": 281.0,
+          "best_threshold": -0.001990779815241694
+        }
+      }
+    },
+    "layer_-6": {
+      "averages": {
+        "accuracy": 0.6433785192909279,
+        "balanced_accuracy": 0.6146991889432075,
+        "precision": 0.22255644631909616,
+        "recall": 0.6418117691035132,
+        "f1": 0.32398740847608815,
+        "auc": 0.6619749773815178
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8905109489051095,
+          "balanced_accuracy": 0.6564885496183206,
+          "precision": 0.17391304347826086,
+          "recall": 0.4,
+          "f1": 0.24242424242424243,
+          "auc": 0.7601017811704835,
+          "best_correlation": 0.20758649706840515,
+          "best_dimension": 318.0,
+          "best_threshold": 0.011263568513095379
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.6262773722627737,
+          "balanced_accuracy": 0.6584677144995577,
+          "precision": 0.11678832116788321,
+          "recall": 0.6956521739130435,
+          "f1": 0.2,
+          "auc": 0.6745594338980745,
+          "best_correlation": 0.15150728821754456,
+          "best_dimension": 870.0,
+          "best_threshold": -0.004816108196973801
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.362043795620438,
+          "balanced_accuracy": 0.5433253962348389,
+          "precision": 0.23905109489051096,
+          "recall": 0.8675496688741722,
+          "f1": 0.3748211731044349,
+          "auc": 0.5780688047225737,
+          "best_correlation": 0.13008446991443634,
+          "best_dimension": 1122.0,
+          "best_threshold": 0.0075217620469629765
+        },
+        "Lung Lesion": {
+          "accuracy": 0.6306569343065693,
+          "balanced_accuracy": 0.6615566037735849,
+          "precision": 0.13503649635036497,
+          "recall": 0.6981132075471698,
+          "f1": 0.22629969418960244,
+          "auc": 0.684887747790781,
+          "best_correlation": 0.17339754104614258,
+          "best_dimension": 271.0,
+          "best_threshold": 0.018705444410443306
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.5036496350364964,
+          "balanced_accuracy": 0.57305284161277,
+          "precision": 0.291970802919708,
+          "recall": 0.7100591715976331,
+          "f1": 0.41379310344827586,
+          "auc": 0.5924154855281867,
+          "best_correlation": 0.13427214324474335,
+          "best_dimension": 1106.0,
+          "best_threshold": -0.011834257654845713
+        },
+        "Edema": {
+          "accuracy": 0.5357664233576642,
+          "balanced_accuracy": 0.6522222222222223,
+          "precision": 0.2773722627737226,
+          "recall": 0.8444444444444444,
+          "f1": 0.4175824175824176,
+          "auc": 0.6805791245791246,
+          "best_correlation": 0.2321711927652359,
+          "best_dimension": 895.0,
+          "best_threshold": -0.0013638369739055614
+        },
+        "Consolidation": {
+          "accuracy": 0.7021897810218978,
+          "balanced_accuracy": 0.6182290483761073,
+          "precision": 0.1407766990291262,
+          "recall": 0.5178571428571429,
+          "f1": 0.22137404580152673,
+          "auc": 0.6394219850102203,
+          "best_correlation": 0.14275068044662476,
+          "best_dimension": 1043.0,
+          "best_threshold": 0.028960033878684042
+        },
+        "Pneumonia": {
+          "accuracy": 0.7065693430656934,
+          "balanced_accuracy": 0.6330447330447331,
+          "precision": 0.14563106796116504,
+          "recall": 0.5454545454545454,
+          "f1": 0.22988505747126436,
+          "auc": 0.6562193362193363,
+          "best_correlation": 0.15552924573421478,
+          "best_dimension": 334.0,
+          "best_threshold": -0.0015966552542522562
+        },
+        "Atelectasis": {
+          "accuracy": 0.4145985401459854,
+          "balanced_accuracy": 0.5513023217109095,
+          "precision": 0.31386861313868614,
+          "recall": 0.8730964467005076,
+          "f1": 0.46174496644295304,
+          "auc": 0.6001081800782225,
+          "best_correlation": 0.1530057191848755,
+          "best_dimension": 310.0,
+          "best_threshold": 0.0020766040310263635
+        },
+        "Pneumothorax": {
+          "accuracy": 0.872992700729927,
+          "balanced_accuracy": 0.5859838932725941,
+          "precision": 0.14492753623188406,
+          "recall": 0.2631578947368421,
+          "f1": 0.18691588785046728,
+          "auc": 0.6583014723826567,
+          "best_correlation": 0.12669111788272858,
+          "best_dimension": 674.0,
+          "best_threshold": 0.0004664233303628873
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.46131386861313867,
+          "balanced_accuracy": 0.5441516412390198,
+          "precision": 0.42207792207792205,
+          "recall": 0.9523809523809523,
+          "f1": 0.5849268841394826,
+          "auc": 0.616700451651908,
+          "best_correlation": 0.20190374553203583,
+          "best_dimension": 545.0,
+          "best_threshold": -0.02854802757501602
+        },
+        "Pleural Other": {
+          "accuracy": 0.8890510948905109,
+          "balanced_accuracy": 0.6345454545454545,
+          "precision": 0.13043478260869565,
+          "recall": 0.36,
+          "f1": 0.19148936170212766,
+          "auc": 0.7235757575757576,
+          "best_correlation": 0.16313402354717255,
+          "best_dimension": 636.0,
+          "best_threshold": 0.0055129982531070725
+        },
+        "Fracture": {
+          "accuracy": 0.7912408759124088,
+          "balanced_accuracy": 0.6194767441860465,
+          "precision": 0.12408759124087591,
+          "recall": 0.425,
+          "f1": 0.192090395480226,
+          "auc": 0.669922480620155,
+          "best_correlation": 0.15915526449680328,
+          "best_dimension": 548.0,
+          "best_threshold": 0.014111044444143774
+        },
+        "Support Devices": {
+          "accuracy": 0.6204379562043796,
+          "balanced_accuracy": 0.6739414808687456,
+          "precision": 0.45985401459854014,
+          "recall": 0.8325991189427313,
+          "f1": 0.5924764890282131,
+          "auc": 0.732787642113768,
+          "best_correlation": 0.3771527111530304,
+          "best_dimension": 281.0,
+          "best_threshold": -0.006084705889225005
+        }
+      }
+    },
+    "layer_-5": {
+      "averages": {
+        "accuracy": 0.6816475495307612,
+        "balanced_accuracy": 0.6159673404206135,
+        "precision": 0.23474653464977693,
+        "recall": 0.5932674634552392,
+        "f1": 0.32815023945599414,
+        "auc": 0.6667740981798238
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8145985401459854,
+          "balanced_accuracy": 0.7440203562340967,
+          "precision": 0.145985401459854,
+          "recall": 0.6666666666666666,
+          "f1": 0.23952095808383234,
+          "auc": 0.7677862595419848,
+          "best_correlation": 0.21464811265468597,
+          "best_dimension": 318.0,
+          "best_threshold": 0.010637817718088628
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.5974858814724093,
+          "precision": 0.18840579710144928,
+          "recall": 0.2826086956521739,
+          "f1": 0.22608695652173913,
+          "auc": 0.6712934612505953,
+          "best_correlation": 0.15246330201625824,
+          "best_dimension": 870.0,
+          "best_threshold": 0.0005921212257817387
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.454014598540146,
+          "balanced_accuracy": 0.5951893742093906,
+          "precision": 0.267223382045929,
+          "recall": 0.847682119205298,
+          "f1": 0.40634920634920635,
+          "auc": 0.6250465064364907,
+          "best_correlation": 0.18705978989601135,
+          "best_dimension": 770.0,
+          "best_threshold": -0.00576556557789445
+        },
+        "Lung Lesion": {
+          "accuracy": 0.6277372262773723,
+          "balanced_accuracy": 0.6513315022689277,
+          "precision": 0.13138686131386862,
+          "recall": 0.6792452830188679,
+          "f1": 0.22018348623853212,
+          "auc": 0.6876044900883689,
+          "best_correlation": 0.18172676861286163,
+          "best_dimension": 271.0,
+          "best_threshold": 0.013347303308546544
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.5036496350364964,
+          "balanced_accuracy": 0.57305284161277,
+          "precision": 0.291970802919708,
+          "recall": 0.7100591715976331,
+          "f1": 0.41379310344827586,
+          "auc": 0.587667996880877,
+          "best_correlation": 0.13715560734272003,
+          "best_dimension": 889.0,
+          "best_threshold": -0.010238667204976081
+        },
+        "Edema": {
+          "accuracy": 0.5240875912408759,
+          "balanced_accuracy": 0.6337710437710438,
+          "precision": 0.26763990267639903,
+          "recall": 0.8148148148148148,
+          "f1": 0.40293040293040294,
+          "auc": 0.6732929292929293,
+          "best_correlation": 0.24461396038532257,
+          "best_dimension": 252.0,
+          "best_threshold": -0.006121242325752973
+        },
+        "Consolidation": {
+          "accuracy": 0.8642335766423358,
+          "balanced_accuracy": 0.6007267771973654,
+          "precision": 0.2318840579710145,
+          "recall": 0.2857142857142857,
+          "f1": 0.256,
+          "auc": 0.6534465137406313,
+          "best_correlation": 0.14966139197349548,
+          "best_dimension": 614.0,
+          "best_threshold": 0.02388448715209961
+        },
+        "Pneumonia": {
+          "accuracy": 0.7897810218978102,
+          "balanced_accuracy": 0.6284992784992784,
+          "precision": 0.17518248175182483,
+          "recall": 0.43636363636363634,
+          "f1": 0.25,
+          "auc": 0.6606637806637807,
+          "best_correlation": 0.15408256649971008,
+          "best_dimension": 334.0,
+          "best_threshold": 0.00371131142601371
+        },
+        "Atelectasis": {
+          "accuracy": 0.46277372262773725,
+          "balanced_accuracy": 0.557871140883748,
+          "precision": 0.32150313152400833,
+          "recall": 0.7817258883248731,
+          "f1": 0.4556213017751479,
+          "auc": 0.5959474078388949,
+          "best_correlation": 0.1490236520767212,
+          "best_dimension": 310.0,
+          "best_threshold": 0.0001326741592492908
+        },
+        "Pneumothorax": {
+          "accuracy": 0.7941605839416058,
+          "balanced_accuracy": 0.6309485072805662,
+          "precision": 0.12408759124087591,
+          "recall": 0.4473684210526316,
+          "f1": 0.19428571428571428,
+          "auc": 0.6680224518018384,
+          "best_correlation": 0.15329580008983612,
+          "best_dimension": 1125.0,
+          "best_threshold": 0.0013152961619198342
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.46715328467153283,
+          "balanced_accuracy": 0.550241829368043,
+          "precision": 0.4253246753246753,
+          "recall": 0.9597069597069597,
+          "f1": 0.5894263217097863,
+          "auc": 0.6274049575020448,
+          "best_correlation": 0.22774800658226013,
+          "best_dimension": 165.0,
+          "best_threshold": -0.01685298904776573
+        },
+        "Pleural Other": {
+          "accuracy": 0.8861313868613139,
+          "balanced_accuracy": 0.6137878787878788,
+          "precision": 0.11594202898550725,
+          "recall": 0.32,
+          "f1": 0.1702127659574468,
+          "auc": 0.7216363636363636,
+          "best_correlation": 0.16286350786685944,
+          "best_dimension": 636.0,
+          "best_threshold": 0.002705004066228868
+        },
+        "Fracture": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.5792635658914729,
+          "precision": 0.14492753623188406,
+          "recall": 0.25,
+          "f1": 0.1834862385321101,
+          "auc": 0.6685271317829458,
+          "best_correlation": 0.15729312598705292,
+          "best_dimension": 548.0,
+          "best_threshold": 0.01951875314116478
+        },
+        "Support Devices": {
+          "accuracy": 0.6145985401459854,
+          "balanced_accuracy": 0.6673527884115961,
+          "precision": 0.45498783454987834,
+          "recall": 0.8237885462555066,
+          "f1": 0.5862068965517241,
+          "auc": 0.7264971240597887,
+          "best_correlation": 0.3663078248500824,
+          "best_dimension": 281.0,
+          "best_threshold": -0.006523447949439286
+        }
+      }
+    },
+    "layer_-4": {
+      "averages": {
+        "accuracy": 0.7053180396246089,
+        "balanced_accuracy": 0.6194640077285074,
+        "precision": 0.2521489576545079,
+        "recall": 0.5611982445797249,
+        "f1": 0.3394482135564213,
+        "auc": 0.6684595381287132
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8963503649635036,
+          "balanced_accuracy": 0.6913486005089058,
+          "precision": 0.2028985507246377,
+          "recall": 0.4666666666666667,
+          "f1": 0.2828282828282828,
+          "auc": 0.7663613231552163,
+          "best_correlation": 0.2002526968717575,
+          "best_dimension": 1134.0,
+          "best_threshold": 6.575584411621231e-05
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.5974858814724093,
+          "precision": 0.18840579710144928,
+          "recall": 0.2826086956521739,
+          "f1": 0.22608695652173913,
+          "auc": 0.6713274817990066,
+          "best_correlation": 0.14978277683258057,
+          "best_dimension": 1001.0,
+          "best_threshold": 0.005825360678136352
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.454014598540146,
+          "balanced_accuracy": 0.5951893742093906,
+          "precision": 0.267223382045929,
+          "recall": 0.847682119205298,
+          "f1": 0.40634920634920635,
+          "auc": 0.6232358558424487,
+          "best_correlation": 0.18699681758880615,
+          "best_dimension": 770.0,
+          "best_threshold": -0.00559020508080721
+        },
+        "Lung Lesion": {
+          "accuracy": 0.6248175182481752,
+          "balanced_accuracy": 0.6411064007642704,
+          "precision": 0.12773722627737227,
+          "recall": 0.660377358490566,
+          "f1": 0.21406727828746178,
+          "auc": 0.6767673752089801,
+          "best_correlation": 0.17417536675930023,
+          "best_dimension": 271.0,
+          "best_threshold": 0.01288350448012352
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.5182481751824818,
+          "balanced_accuracy": 0.5926907022613641,
+          "precision": 0.30413625304136255,
+          "recall": 0.7396449704142012,
+          "f1": 0.43103448275862066,
+          "auc": 0.5990092197605614,
+          "best_correlation": 0.14893434941768646,
+          "best_dimension": 889.0,
+          "best_threshold": -0.012475541420280933
+        },
+        "Edema": {
+          "accuracy": 0.6423357664233577,
+          "balanced_accuracy": 0.6291582491582491,
+          "precision": 0.29927007299270075,
+          "recall": 0.6074074074074074,
+          "f1": 0.40097799511002447,
+          "auc": 0.6725925925925926,
+          "best_correlation": 0.23287628591060638,
+          "best_dimension": 1051.0,
+          "best_threshold": 0.018461401760578155
+        },
+        "Consolidation": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.6201737451737452,
+          "precision": 0.2608695652173913,
+          "recall": 0.32142857142857145,
+          "f1": 0.288,
+          "auc": 0.6573075176016352,
+          "best_correlation": 0.15280994772911072,
+          "best_dimension": 614.0,
+          "best_threshold": 0.02375336214900017
+        },
+        "Pneumonia": {
+          "accuracy": 0.7065693430656934,
+          "balanced_accuracy": 0.6330447330447331,
+          "precision": 0.14563106796116504,
+          "recall": 0.5454545454545454,
+          "f1": 0.22988505747126436,
+          "auc": 0.6663780663780664,
+          "best_correlation": 0.1591368168592453,
+          "best_dimension": 334.0,
+          "best_threshold": 0.006748551223427053
+        },
+        "Atelectasis": {
+          "accuracy": 0.45985401459854014,
+          "balanced_accuracy": 0.5543084796538238,
+          "precision": 0.31941544885177453,
+          "recall": 0.7766497461928934,
+          "f1": 0.4526627218934911,
+          "auc": 0.5941374719147874,
+          "best_correlation": 0.1434383988380432,
+          "best_dimension": 310.0,
+          "best_threshold": 0.000902182538993656
+        },
+        "Pneumothorax": {
+          "accuracy": 0.8788321167883212,
+          "balanced_accuracy": 0.6138452778003742,
+          "precision": 0.17391304347826086,
+          "recall": 0.3157894736842105,
+          "f1": 0.22429906542056074,
+          "auc": 0.6756690799642073,
+          "best_correlation": 0.15952828526496887,
+          "best_dimension": 1125.0,
+          "best_threshold": 0.007963012531399728
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.5226277372262774,
+          "balanced_accuracy": 0.58708969024503,
+          "precision": 0.45072992700729925,
+          "recall": 0.9047619047619048,
+          "f1": 0.6017052375152253,
+          "auc": 0.6364468864468864,
+          "best_correlation": 0.23259373009204865,
+          "best_dimension": 944.0,
+          "best_threshold": 0.004641212150454523
+        },
+        "Pleural Other": {
+          "accuracy": 0.8890510948905109,
+          "balanced_accuracy": 0.6345454545454545,
+          "precision": 0.13043478260869565,
+          "recall": 0.36,
+          "f1": 0.19148936170212766,
+          "auc": 0.7050303030303031,
+          "best_correlation": 0.1363733410835266,
+          "best_dimension": 464.0,
+          "best_threshold": 0.004317005909979343
+        },
+        "Fracture": {
+          "accuracy": 0.872992700729927,
+          "balanced_accuracy": 0.5925387596899225,
+          "precision": 0.15942028985507245,
+          "recall": 0.275,
+          "f1": 0.2018348623853211,
+          "auc": 0.6705426356589147,
+          "best_correlation": 0.15428580343723297,
+          "best_dimension": 548.0,
+          "best_threshold": 0.02262951135635376
+        },
+        "Support Devices": {
+          "accuracy": 0.6686131386861314,
+          "balanced_accuracy": 0.6899707596714311,
+          "precision": 0.5,
+          "recall": 0.7533039647577092,
+          "f1": 0.6010544815465729,
+          "auc": 0.7436277244483773,
+          "best_correlation": 0.3904745578765869,
+          "best_dimension": 281.0,
+          "best_threshold": -0.002034620614722371
+        }
+      }
+    },
+    "layer_-3": {
+      "averages": {
+        "accuracy": 0.6907194994786234,
+        "balanced_accuracy": 0.6161197327460732,
+        "precision": 0.23757108209995947,
+        "recall": 0.5781169211127336,
+        "f1": 0.3315119515958643,
+        "auc": 0.6634299340203508
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8875912408759125,
+          "balanced_accuracy": 0.639058524173028,
+          "precision": 0.15942028985507245,
+          "recall": 0.36666666666666664,
+          "f1": 0.2222222222222222,
+          "auc": 0.7458524173027989,
+          "best_correlation": 0.19782541692256927,
+          "best_dimension": 318.0,
+          "best_threshold": 0.012780659459531309
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8700729927007299,
+          "balanced_accuracy": 0.5974858814724093,
+          "precision": 0.18840579710144928,
+          "recall": 0.2826086956521739,
+          "f1": 0.22608695652173913,
+          "auc": 0.6735728379941485,
+          "best_correlation": 0.1602339744567871,
+          "best_dimension": 1001.0,
+          "best_threshold": 0.002169479336589575
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.5094890510948905,
+          "balanced_accuracy": 0.5951459682019992,
+          "precision": 0.2749391727493917,
+          "recall": 0.7483443708609272,
+          "f1": 0.40213523131672596,
+          "auc": 0.6136245256343479,
+          "best_correlation": 0.1700751781463623,
+          "best_dimension": 770.0,
+          "best_threshold": -0.0024280016776174283
+        },
+        "Lung Lesion": {
+          "accuracy": 0.7065693430656934,
+          "balanced_accuracy": 0.6335532600907571,
+          "precision": 0.1407766990291262,
+          "recall": 0.5471698113207547,
+          "f1": 0.22393822393822393,
+          "auc": 0.6765583950322427,
+          "best_correlation": 0.17323614656925201,
+          "best_dimension": 271.0,
+          "best_threshold": 0.014352616667747498
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.4569343065693431,
+          "balanced_accuracy": 0.5778576670794917,
+          "precision": 0.2881002087682672,
+          "recall": 0.8165680473372781,
+          "f1": 0.42592592592592593,
+          "auc": 0.5869799550479337,
+          "best_correlation": 0.13265781104564667,
+          "best_dimension": 889.0,
+          "best_threshold": -0.015637320466339588
+        },
+        "Edema": {
+          "accuracy": 0.6335766423357664,
+          "balanced_accuracy": 0.6153198653198653,
+          "precision": 0.28832116788321166,
+          "recall": 0.5851851851851851,
+          "f1": 0.3863080684596577,
+          "auc": 0.6662895622895623,
+          "best_correlation": 0.23503035306930542,
+          "best_dimension": 664.0,
+          "best_threshold": 0.006974706239998339
+        },
+        "Consolidation": {
+          "accuracy": 0.7941605839416058,
+          "balanced_accuracy": 0.64390756302521,
+          "precision": 0.1897810218978102,
+          "recall": 0.4642857142857143,
+          "f1": 0.2694300518134715,
+          "auc": 0.6598625936861231,
+          "best_correlation": 0.15411199629306793,
+          "best_dimension": 614.0,
+          "best_threshold": 0.020372426137328148
+        },
+        "Pneumonia": {
+          "accuracy": 0.7868613138686131,
+          "balanced_accuracy": 0.6186147186147186,
+          "precision": 0.1678832116788321,
+          "recall": 0.41818181818181815,
+          "f1": 0.23958333333333334,
+          "auc": 0.6527561327561329,
+          "best_correlation": 0.14946216344833374,
+          "best_dimension": 334.0,
+          "best_threshold": 0.01403301525861025
+        },
+        "Atelectasis": {
+          "accuracy": 0.4029197080291971,
+          "balanced_accuracy": 0.5370516767912125,
+          "precision": 0.30656934306569344,
+          "recall": 0.8527918781725888,
+          "f1": 0.45100671140939597,
+          "auc": 0.5859615544645087,
+          "best_correlation": 0.14218169450759888,
+          "best_dimension": 143.0,
+          "best_threshold": -0.013293481804430485
+        },
+        "Pneumothorax": {
+          "accuracy": 0.8759124087591241,
+          "balanced_accuracy": 0.5999145855364842,
+          "precision": 0.15942028985507245,
+          "recall": 0.2894736842105263,
+          "f1": 0.205607476635514,
+          "auc": 0.6737167493695599,
+          "best_correlation": 0.1566254049539566,
+          "best_dimension": 1125.0,
+          "best_threshold": 0.00843753553926945
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.5226277372262774,
+          "balanced_accuracy": 0.58708969024503,
+          "precision": 0.45072992700729925,
+          "recall": 0.9047619047619048,
+          "f1": 0.6017052375152253,
+          "auc": 0.6369092072975568,
+          "best_correlation": 0.23110060393810272,
+          "best_dimension": 944.0,
+          "best_threshold": 0.0042082836851477625
+        },
+        "Pleural Other": {
+          "accuracy": 0.8890510948905109,
+          "balanced_accuracy": 0.6345454545454545,
+          "precision": 0.13043478260869565,
+          "recall": 0.36,
+          "f1": 0.19148936170212766,
+          "auc": 0.7095151515151515,
+          "best_correlation": 0.13780945539474487,
+          "best_dimension": 399.0,
+          "best_threshold": 0.012688928842544557
+        },
+        "Fracture": {
+          "accuracy": 0.7138686131386861,
+          "balanced_accuracy": 0.6721899224806202,
+          "precision": 0.12135922330097088,
+          "recall": 0.625,
+          "f1": 0.2032520325203252,
+          "auc": 0.6773643410852713,
+          "best_correlation": 0.16513919830322266,
+          "best_dimension": 548.0,
+          "best_threshold": 0.01806022971868515
+        },
+        "Support Devices": {
+          "accuracy": 0.6204379562043796,
+          "balanced_accuracy": 0.6739414808687456,
+          "precision": 0.45985401459854014,
+          "recall": 0.8325991189427313,
+          "f1": 0.5924764890282131,
+          "auc": 0.7290556528095723,
+          "best_correlation": 0.3706289827823639,
+          "best_dimension": 281.0,
+          "best_threshold": -0.002377340104430914
+        }
+      }
+    },
+    "layer_-2": {
+      "averages": {
+        "accuracy": 0.6913451511991658,
+        "balanced_accuracy": 0.6213347514966666,
+        "precision": 0.2462284325915147,
+        "recall": 0.5865127184819243,
+        "f1": 0.337671076458289,
+        "auc": 0.6647928542981525
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8934306569343066,
+          "balanced_accuracy": 0.6739185750636132,
+          "precision": 0.18840579710144928,
+          "recall": 0.43333333333333335,
+          "f1": 0.26262626262626265,
+          "auc": 0.7481933842239186,
+          "best_correlation": 0.21333763003349304,
+          "best_dimension": 959.0,
+          "best_threshold": 0.020480071008205415
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8759124087591241,
+          "balanced_accuracy": 0.620789957134109,
+          "precision": 0.21739130434782608,
+          "recall": 0.32608695652173914,
+          "f1": 0.2608695652173913,
+          "auc": 0.6672109954412464,
+          "best_correlation": 0.15366411209106445,
+          "best_dimension": 1001.0,
+          "best_threshold": 0.0019973825663328173
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.3883211678832117,
+          "balanced_accuracy": 0.581553687030285,
+          "precision": 0.25547445255474455,
+          "recall": 0.9271523178807947,
+          "f1": 0.4005722460658083,
+          "auc": 0.6062827095269985,
+          "best_correlation": 0.1620863825082779,
+          "best_dimension": 770.0,
+          "best_threshold": -0.001275874371640384
+        },
+        "Lung Lesion": {
+          "accuracy": 0.7839416058394161,
+          "balanced_accuracy": 0.6063410556484357,
+          "precision": 0.15328467153284672,
+          "recall": 0.39622641509433965,
+          "f1": 0.22105263157894736,
+          "auc": 0.6919930737998568,
+          "best_correlation": 0.18035250902175903,
+          "best_dimension": 1021.0,
+          "best_threshold": 0.007926901243627072
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.5124087591240876,
+          "balanced_accuracy": 0.5848355580019265,
+          "precision": 0.29927007299270075,
+          "recall": 0.727810650887574,
+          "f1": 0.4241379310344828,
+          "auc": 0.5862804458511077,
+          "best_correlation": 0.1375119835138321,
+          "best_dimension": 889.0,
+          "best_threshold": -0.01358596421778202
+        },
+        "Edema": {
+          "accuracy": 0.654014598540146,
+          "balanced_accuracy": 0.6476094276094276,
+          "precision": 0.31386861313868614,
+          "recall": 0.6370370370370371,
+          "f1": 0.42053789731051344,
+          "auc": 0.685939393939394,
+          "best_correlation": 0.236857607960701,
+          "best_dimension": 895.0,
+          "best_threshold": 0.003251549927517771
+        },
+        "Consolidation": {
+          "accuracy": 0.8642335766423358,
+          "balanced_accuracy": 0.6007267771973654,
+          "precision": 0.2318840579710145,
+          "recall": 0.2857142857142857,
+          "f1": 0.256,
+          "auc": 0.6571655689302748,
+          "best_correlation": 0.16231583058834076,
+          "best_dimension": 614.0,
+          "best_threshold": 0.02292282357811928
+        },
+        "Pneumonia": {
+          "accuracy": 0.7065693430656934,
+          "balanced_accuracy": 0.6330447330447331,
+          "precision": 0.14563106796116504,
+          "recall": 0.5454545454545454,
+          "f1": 0.22988505747126436,
+          "auc": 0.6656277056277058,
+          "best_correlation": 0.14754144847393036,
+          "best_dimension": 1101.0,
+          "best_threshold": -0.0031372793950140494
+        },
+        "Atelectasis": {
+          "accuracy": 0.4145985401459854,
+          "balanced_accuracy": 0.5513023217109095,
+          "precision": 0.31386861313868614,
+          "recall": 0.8730964467005076,
+          "f1": 0.46174496644295304,
+          "auc": 0.5994528584505284,
+          "best_correlation": 0.15461157262325287,
+          "best_dimension": 561.0,
+          "best_threshold": -0.000891608337406069
+        },
+        "Pneumothorax": {
+          "accuracy": 0.7912408759124088,
+          "balanced_accuracy": 0.6170178150166761,
+          "precision": 0.11678832116788321,
+          "recall": 0.42105263157894735,
+          "f1": 0.18285714285714286,
+          "auc": 0.6657447327747498,
+          "best_correlation": 0.15060916543006897,
+          "best_dimension": 1125.0,
+          "best_threshold": 0.005534001719206574
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.5197080291970803,
+          "balanced_accuracy": 0.5840445961805185,
+          "precision": 0.4489051094890511,
+          "recall": 0.9010989010989011,
+          "f1": 0.5992691839220463,
+          "auc": 0.6437017674881752,
+          "best_correlation": 0.2434433102607727,
+          "best_dimension": 944.0,
+          "best_threshold": -0.003745953692123293
+        },
+        "Pleural Other": {
+          "accuracy": 0.891970802919708,
+          "balanced_accuracy": 0.6553030303030303,
+          "precision": 0.14492753623188406,
+          "recall": 0.4,
+          "f1": 0.2127659574468085,
+          "auc": 0.6875151515151515,
+          "best_correlation": 0.1295868158340454,
+          "best_dimension": 399.0,
+          "best_threshold": 0.012047271057963372
+        },
+        "Fracture": {
+          "accuracy": 0.708029197080292,
+          "balanced_accuracy": 0.645639534883721,
+          "precision": 0.11165048543689321,
+          "recall": 0.575,
+          "f1": 0.18699186991869918,
+          "auc": 0.6664728682170541,
+          "best_correlation": 0.15279676020145416,
+          "best_dimension": 548.0,
+          "best_threshold": 0.01925203464925289
+        },
+        "Support Devices": {
+          "accuracy": 0.6744525547445256,
+          "balanced_accuracy": 0.6965594521285805,
+          "precision": 0.5058479532163743,
+          "recall": 0.762114537444934,
+          "f1": 0.6080843585237259,
+          "auc": 0.7355193043879731,
+          "best_correlation": 0.37989580631256104,
+          "best_dimension": 1134.0,
+          "best_threshold": 0.010140156373381615
+        }
+      }
+    },
+    "layer_-1": {
+      "averages": {
+        "accuracy": 0.6738269030239833,
+        "balanced_accuracy": 0.6255012116074612,
+        "precision": 0.23703778973146425,
+        "recall": 0.6166856386192868,
+        "f1": 0.33448099408948767,
+        "auc": 0.6617337905421311
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.8963503649635036,
+          "balanced_accuracy": 0.6913486005089058,
+          "precision": 0.2028985507246377,
+          "recall": 0.4666666666666667,
+          "f1": 0.2828282828282828,
+          "auc": 0.7416284987277354,
+          "best_correlation": 0.20538842678070068,
+          "best_dimension": 758.0,
+          "best_threshold": 0.018902264907956125
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8788321167883212,
+          "balanced_accuracy": 0.6324419949649589,
+          "precision": 0.2318840579710145,
+          "recall": 0.34782608695652173,
+          "f1": 0.2782608695652174,
+          "auc": 0.6855820915833163,
+          "best_correlation": 0.1723087877035141,
+          "best_dimension": 1001.0,
+          "best_threshold": 0.004706480912864209
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.37664233576642336,
+          "balanced_accuracy": 0.5645633355656423,
+          "precision": 0.24817518248175183,
+          "recall": 0.9006622516556292,
+          "f1": 0.38912732474964234,
+          "auc": 0.6035419302031402,
+          "best_correlation": 0.16996756196022034,
+          "best_dimension": 770.0,
+          "best_threshold": 0.0031731436960399156
+        },
+        "Lung Lesion": {
+          "accuracy": 0.781021897810219,
+          "balanced_accuracy": 0.5961159541437784,
+          "precision": 0.145985401459854,
+          "recall": 0.37735849056603776,
+          "f1": 0.21052631578947367,
+          "auc": 0.6740804872223549,
+          "best_correlation": 0.18111076951026917,
+          "best_dimension": 271.0,
+          "best_threshold": 0.014875652082264424
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.44233576642335765,
+          "balanced_accuracy": 0.5582198064308976,
+          "precision": 0.2776617954070981,
+          "recall": 0.7869822485207101,
+          "f1": 0.4104938271604938,
+          "auc": 0.587989083069584,
+          "best_correlation": 0.1378956139087677,
+          "best_dimension": 889.0,
+          "best_threshold": -0.01242999266833067
+        },
+        "Edema": {
+          "accuracy": 0.6014598540145986,
+          "balanced_accuracy": 0.6595959595959595,
+          "precision": 0.2982456140350877,
+          "recall": 0.7555555555555555,
+          "f1": 0.4276729559748428,
+          "auc": 0.6921346801346802,
+          "best_correlation": 0.24461498856544495,
+          "best_dimension": 895.0,
+          "best_threshold": 0.004287594463676214
+        },
+        "Consolidation": {
+          "accuracy": 0.7883211678832117,
+          "balanced_accuracy": 0.6244605950488303,
+          "precision": 0.17518248175182483,
+          "recall": 0.42857142857142855,
+          "f1": 0.24870466321243523,
+          "auc": 0.6596354758119465,
+          "best_correlation": 0.17004519701004028,
+          "best_dimension": 614.0,
+          "best_threshold": 0.008278401754796506
+        },
+        "Pneumonia": {
+          "accuracy": 0.7094890510948905,
+          "balanced_accuracy": 0.6429292929292929,
+          "precision": 0.15048543689320387,
+          "recall": 0.5636363636363636,
+          "f1": 0.23754789272030652,
+          "auc": 0.6506204906204907,
+          "best_correlation": 0.15819962322711945,
+          "best_dimension": 1136.0,
+          "best_threshold": -0.0002898521139286459
+        },
+        "Atelectasis": {
+          "accuracy": 0.5182481751824818,
+          "balanced_accuracy": 0.5741033535824249,
+          "precision": 0.3381995133819951,
+          "recall": 0.7055837563451777,
+          "f1": 0.45723684210526316,
+          "auc": 0.5858159274361321,
+          "best_correlation": 0.1415719985961914,
+          "best_dimension": 143.0,
+          "best_threshold": -0.0035538206342607733
+        },
+        "Pneumothorax": {
+          "accuracy": 0.8029197080291971,
+          "balanced_accuracy": 0.6727405840722362,
+          "precision": 0.145985401459854,
+          "recall": 0.5263157894736842,
+          "f1": 0.22857142857142856,
+          "auc": 0.6883999023834703,
+          "best_correlation": 0.16422678530216217,
+          "best_dimension": 1125.0,
+          "best_threshold": 0.0076093111187219625
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.5167883211678832,
+          "balanced_accuracy": 0.580999502116007,
+          "precision": 0.4470802919708029,
+          "recall": 0.8974358974358975,
+          "f1": 0.5968331303288672,
+          "auc": 0.6273071588605569,
+          "best_correlation": 0.21678781509399414,
+          "best_dimension": 944.0,
+          "best_threshold": -0.006144535448402166
+        },
+        "Pleural Other": {
+          "accuracy": 0.7094890510948905,
+          "balanced_accuracy": 0.676060606060606,
+          "precision": 0.07766990291262135,
+          "recall": 0.64,
+          "f1": 0.13852813852813853,
+          "auc": 0.6901818181818182,
+          "best_correlation": 0.12452424317598343,
+          "best_dimension": 6.0,
+          "best_threshold": 9.215064492309319e-05
+        },
+        "Fracture": {
+          "accuracy": 0.7883211678832117,
+          "balanced_accuracy": 0.6062015503875969,
+          "precision": 0.11678832116788321,
+          "recall": 0.4,
+          "f1": 0.1807909604519774,
+          "auc": 0.6594573643410852,
+          "best_correlation": 0.14499279856681824,
+          "best_dimension": 548.0,
+          "best_threshold": 0.016964591667056085
+        },
+        "Support Devices": {
+          "accuracy": 0.6233576642335766,
+          "balanced_accuracy": 0.6772358270973202,
+          "precision": 0.46228710462287104,
+          "recall": 0.8370044052863436,
+          "f1": 0.5956112852664577,
+          "auc": 0.7178981590135238,
+          "best_correlation": 0.3485583961009979,
+          "best_dimension": 258.0,
+          "best_threshold": -0.001331231114454567
+        }
+      }
+    },
+    "layer_0": {
+      "averages": {
+        "accuracy": 0.7683003128258603,
+        "balanced_accuracy": 0.6664847787592274,
+        "precision": 0.30423833483503243,
+        "recall": 0.5642759311426884,
+        "f1": 0.38670492172531434,
+        "auc": 0.7424064105739152
+      },
+      "per_label": {
+        "No Finding": {
+          "accuracy": 0.9021897810218978,
+          "balanced_accuracy": 0.7262086513994911,
+          "precision": 0.2318840579710145,
+          "recall": 0.5333333333333333,
+          "f1": 0.32323232323232326,
+          "auc": 0.8162849872773537,
+          "best_correlation": 0.29204046726226807,
+          "best_dimension": 629.0,
+          "best_threshold": 0.033257181942462924
+        },
+        "Enlarged Cardiomediastinum": {
+          "accuracy": 0.8671532846715329,
+          "balanced_accuracy": 0.5858338436415595,
+          "precision": 0.17391304347826086,
+          "recall": 0.2608695652173913,
+          "f1": 0.20869565217391303,
+          "auc": 0.6953119684289311,
+          "best_correlation": 0.16249805688858032,
+          "best_dimension": 413.0,
+          "best_threshold": 0.0030915693379938657
+        },
+        "Cardiomegaly": {
+          "accuracy": 0.727007299270073,
+          "balanced_accuracy": 0.6681610734925714,
+          "precision": 0.41262135922330095,
+          "recall": 0.5629139072847682,
+          "f1": 0.47619047619047616,
+          "auc": 0.7495845425006822,
+          "best_correlation": 0.3607165515422821,
+          "best_dimension": 573.0,
+          "best_threshold": -0.009887890703976155
+        },
+        "Lung Lesion": {
+          "accuracy": 0.8014598540145985,
+          "balanced_accuracy": 0.6676916646763793,
+          "precision": 0.19708029197080293,
+          "recall": 0.5094339622641509,
+          "f1": 0.28421052631578947,
+          "auc": 0.7134583233818964,
+          "best_correlation": 0.20823095738887787,
+          "best_dimension": 917.0,
+          "best_threshold": 0.0012801921460777572
+        },
+        "Airspace Opacity": {
+          "accuracy": 0.4029197080291971,
+          "balanced_accuracy": 0.5738383560387138,
+          "precision": 0.28102189781021897,
+          "recall": 0.9112426035502958,
+          "f1": 0.4295676429567643,
+          "auc": 0.6281936608412458,
+          "best_correlation": 0.20064756274223328,
+          "best_dimension": 656.0,
+          "best_threshold": 0.016047639399766923
+        },
+        "Edema": {
+          "accuracy": 0.6978102189781021,
+          "balanced_accuracy": 0.7168013468013468,
+          "precision": 0.3686131386861314,
+          "recall": 0.7481481481481481,
+          "f1": 0.4938875305623472,
+          "auc": 0.7970101010101011,
+          "best_correlation": 0.3994201123714447,
+          "best_dimension": 503.0,
+          "best_threshold": -0.02216745913028717
+        },
+        "Consolidation": {
+          "accuracy": 0.7883211678832117,
+          "balanced_accuracy": 0.6244605950488303,
+          "precision": 0.17518248175182483,
+          "recall": 0.42857142857142855,
+          "f1": 0.24870466321243523,
+          "auc": 0.7099704746763571,
+          "best_correlation": 0.19614122807979584,
+          "best_dimension": 205.0,
+          "best_threshold": 0.014161582291126252
+        },
+        "Pneumonia": {
+          "accuracy": 0.8043795620437956,
+          "balanced_accuracy": 0.6779220779220779,
+          "precision": 0.2116788321167883,
+          "recall": 0.5272727272727272,
+          "f1": 0.3020833333333333,
+          "auc": 0.7228282828282828,
+          "best_correlation": 0.22818206250667572,
+          "best_dimension": 613.0,
+          "best_threshold": 0.035354407131671914
+        },
+        "Atelectasis": {
+          "accuracy": 0.6481751824817519,
+          "balanced_accuracy": 0.6289683365232588,
+          "precision": 0.4197080291970803,
+          "recall": 0.583756345177665,
+          "f1": 0.4883227176220807,
+          "auc": 0.6601169176999251,
+          "best_correlation": 0.24291005730628967,
+          "best_dimension": 87.0,
+          "best_threshold": 0.03337077051401138
+        },
+        "Pneumothorax": {
+          "accuracy": 0.8905109489051095,
+          "balanced_accuracy": 0.6695680468559342,
+          "precision": 0.2318840579710145,
+          "recall": 0.42105263157894735,
+          "f1": 0.29906542056074764,
+          "auc": 0.7817457089400471,
+          "best_correlation": 0.2543211281299591,
+          "best_dimension": 1059.0,
+          "best_threshold": 0.017614103481173517
+        },
+        "Pleural Effusion": {
+          "accuracy": 0.6759124087591241,
+          "balanced_accuracy": 0.7046303211351754,
+          "precision": 0.5620437956204379,
+          "recall": 0.8461538461538461,
+          "f1": 0.6754385964912281,
+          "auc": 0.7808776983534266,
+          "best_correlation": 0.4772225022315979,
+          "best_dimension": 1074.0,
+          "best_threshold": -0.012290652841329571
+        },
+        "Pleural Other": {
+          "accuracy": 0.8978102189781022,
+          "balanced_accuracy": 0.6968181818181818,
+          "precision": 0.17391304347826086,
+          "recall": 0.48,
+          "f1": 0.2553191489361702,
+          "auc": 0.749030303030303,
+          "best_correlation": 0.19798244535923004,
+          "best_dimension": 274.0,
+          "best_threshold": 0.029015536978840836
+        },
+        "Fracture": {
+          "accuracy": 0.8788321167883212,
+          "balanced_accuracy": 0.6190891472868217,
+          "precision": 0.18840579710144928,
+          "recall": 0.325,
+          "f1": 0.23853211009174313,
+          "auc": 0.7437984496124032,
+          "best_correlation": 0.1964525282382965,
+          "best_dimension": 1074.0,
+          "best_threshold": 0.03847273960709572
+        },
+        "Support Devices": {
+          "accuracy": 0.7737226277372263,
+          "balanced_accuracy": 0.7707952599888426,
+          "precision": 0.6313868613138686,
+          "recall": 0.762114537444934,
+          "f1": 0.6906187624750499,
+          "auc": 0.84547832945386,
+          "best_correlation": 0.5685272216796875,
+          "best_dimension": 688.0,
+          "best_threshold": 0.0017117590876296158
+        }
+      }
+    }
+  },
+  "trained_classifiers": {
+    "layer_-12": {
+      "accuracy": 0.6850886339937434,
+      "balanced_accuracy": 0.6065274457568035,
+      "precision": 0.3655707409975936,
+      "recall": 0.5317714026038408,
+      "f1": 0.3524017814785087,
+      "auc": 0.5945668234546886
+    },
+    "layer_-11": {
+      "accuracy": 0.6392075078206466,
+      "balanced_accuracy": 0.6119917423618925,
+      "precision": 0.3141911214077438,
+      "recall": 0.6042044956276965,
+      "f1": 0.34357549421971706,
+      "auc": 0.6001140460958025
+    },
+    "layer_-10": {
+      "accuracy": 0.6438998957247132,
+      "balanced_accuracy": 0.6029436797939246,
+      "precision": 0.2978157848343172,
+      "recall": 0.5801694833193222,
+      "f1": 0.33937678048466535,
+      "auc": 0.6021102472775822
+    },
+    "layer_-9": {
+      "accuracy": 0.670490093847758,
+      "balanced_accuracy": 0.6216310002072519,
+      "precision": 0.3551922478738258,
+      "recall": 0.5973092048978194,
+      "f1": 0.3650298133627678,
+      "auc": 0.6138961175496018
+    },
+    "layer_-8": {
+      "accuracy": 0.6657977059436915,
+      "balanced_accuracy": 0.6185813211426535,
+      "precision": 0.2898881706162835,
+      "recall": 0.60833530166774,
+      "f1": 0.35295004085934545,
+      "auc": 0.6060496515426349
+    },
+    "layer_-7": {
+      "accuracy": 0.6647549530761211,
+      "balanced_accuracy": 0.6114332960291274,
+      "precision": 0.30206398785221694,
+      "recall": 0.5923649193627712,
+      "f1": 0.3531979897127023,
+      "auc": 0.6182990265394422
+    },
+    "layer_-6": {
+      "accuracy": 0.7325338894681961,
+      "balanced_accuracy": 0.6504677882257198,
+      "precision": 0.30692033438295013,
+      "recall": 0.5710080823023894,
+      "f1": 0.36938039277562085,
+      "auc": 0.6571273262714182
+    },
+    "layer_-5": {
+      "accuracy": 0.718978102189781,
+      "balanced_accuracy": 0.6182586301233624,
+      "precision": 0.30056778708036774,
+      "recall": 0.5351213219687977,
+      "f1": 0.3566635597574379,
+      "auc": 0.6297271453630133
+    },
+    "layer_-4": {
+      "accuracy": 0.6856100104275288,
+      "balanced_accuracy": 0.6418633663253743,
+      "precision": 0.311790667440249,
+      "recall": 0.6062994821346057,
+      "f1": 0.36039429479032953,
+      "auc": 0.6422042978048127
+    },
+    "layer_-3": {
+      "accuracy": 0.6532846715328466,
+      "balanced_accuracy": 0.6244050143008876,
+      "precision": 0.3119029971484418,
+      "recall": 0.6139185975141936,
+      "f1": 0.36423069879322434,
+      "auc": 0.6568370680197432
+    },
+    "layer_-2": {
+      "accuracy": 0.6491136600625652,
+      "balanced_accuracy": 0.6324887099365093,
+      "precision": 0.29338854048106267,
+      "recall": 0.6400202199638291,
+      "f1": 0.36224964744084803,
+      "auc": 0.6359404611233305
+    },
+    "layer_-1": {
+      "accuracy": 0.7413972888425443,
+      "balanced_accuracy": 0.6424486130487799,
+      "precision": 0.29451797905168614,
+      "recall": 0.5611629960126201,
+      "f1": 0.3726574178541934,
+      "auc": 0.6321539553899659
+    },
+    "layer_0": {
+      "accuracy": 0.8128258602711158,
+      "balanced_accuracy": 0.6801783767224248,
+      "precision": 0.43201643575334153,
+      "recall": 0.544576413561376,
+      "f1": 0.45788288289301443,
+      "auc": 0.7114029365124451
+    }
+  },
+  "summary": {
+    "correlation_summary": {
+      "layer_-12": {
+        "max_pearson": 0.1630842238664627,
+        "mean_pearson": 0.04525497555732727,
+        "top_k_pearson": 0.14531710743904114,
+        "max_spearman": 0.16178285943097484,
+        "mean_spearman": 0.04535967361549054,
+        "top_k_spearman": 0.14433784513839718
+      },
+      "layer_-11": {
+        "max_pearson": 0.16369816660881042,
+        "mean_pearson": 0.0456698052585125,
+        "top_k_pearson": 0.14826156198978424,
+        "max_spearman": 0.16234086744840742,
+        "mean_spearman": 0.045751671747805686,
+        "top_k_spearman": 0.14655965028754725
+      },
+      "layer_-10": {
+        "max_pearson": 0.16542896628379822,
+        "mean_pearson": 0.045582059770822525,
+        "top_k_pearson": 0.14847169816493988,
+        "max_spearman": 0.1657475275694129,
+        "mean_spearman": 0.04567881490183621,
+        "top_k_spearman": 0.14653995274523285
+      },
+      "layer_-9": {
+        "max_pearson": 0.1701444685459137,
+        "mean_pearson": 0.04620502516627312,
+        "top_k_pearson": 0.1495485007762909,
+        "max_spearman": 0.16689154072324924,
+        "mean_spearman": 0.04638249285798061,
+        "top_k_spearman": 0.14729354126783756
+      },
+      "layer_-8": {
+        "max_pearson": 0.17096658051013947,
+        "mean_pearson": 0.047491151839494705,
+        "top_k_pearson": 0.15138040482997894,
+        "max_spearman": 0.1711770940375914,
+        "mean_spearman": 0.0477582673732132,
+        "top_k_spearman": 0.14942334845850688
+      },
+      "layer_-7": {
+        "max_pearson": 0.17943096160888672,
+        "mean_pearson": 0.04793589934706688,
+        "top_k_pearson": 0.15435822308063507,
+        "max_spearman": 0.17763768100690017,
+        "mean_spearman": 0.048185335458130245,
+        "top_k_spearman": 0.1534852989354956
+      },
+      "layer_-6": {
+        "max_pearson": 0.1791672557592392,
+        "mean_pearson": 0.047680217772722244,
+        "top_k_pearson": 0.15506598353385925,
+        "max_spearman": 0.17712137746540121,
+        "mean_spearman": 0.04788856796636326,
+        "top_k_spearman": 0.15402668436027422
+      },
+      "layer_-5": {
+        "max_pearson": 0.1884245127439499,
+        "mean_pearson": 0.04857691004872322,
+        "top_k_pearson": 0.15952683985233307,
+        "max_spearman": 0.183664233555473,
+        "mean_spearman": 0.04876910709791877,
+        "top_k_spearman": 0.15868451616146564
+      },
+      "layer_-4": {
+        "max_pearson": 0.18726137280464172,
+        "mean_pearson": 0.048768069595098495,
+        "top_k_pearson": 0.1592244952917099,
+        "max_spearman": 0.18368328137589995,
+        "mean_spearman": 0.04896507013489039,
+        "top_k_spearman": 0.15894010330862482
+      },
+      "layer_-3": {
+        "max_pearson": 0.18400844931602478,
+        "mean_pearson": 0.04838671162724495,
+        "top_k_pearson": 0.15807345509529114,
+        "max_spearman": 0.18013252910170371,
+        "mean_spearman": 0.048596087157261714,
+        "top_k_spearman": 0.15712247277502175
+      },
+      "layer_-2": {
+        "max_pearson": 0.1860436350107193,
+        "mean_pearson": 0.048866450786590576,
+        "top_k_pearson": 0.1615377515554428,
+        "max_spearman": 0.18293652334001284,
+        "mean_spearman": 0.049173990055349996,
+        "top_k_spearman": 0.16025146821581274
+      },
+      "layer_-1": {
+        "max_pearson": 0.184299498796463,
+        "mean_pearson": 0.04837002977728844,
+        "top_k_pearson": 0.1595379114151001,
+        "max_spearman": 0.18016610070150715,
+        "mean_spearman": 0.04906649950345968,
+        "top_k_spearman": 0.1586843908747799
+      },
+      "layer_0": {
+        "max_pearson": 0.28466376662254333,
+        "mean_pearson": 0.08201803267002106,
+        "top_k_pearson": 0.25066938996315,
+        "max_spearman": 0.2775675678418254,
+        "mean_spearman": 0.08179042610033031,
+        "top_k_spearman": 0.24633631456790286
+      }
+    },
+    "threshold_summary": {
+      "layer_-12": {
+        "accuracy": 0.6882168925964548,
+        "balanced_accuracy": 0.5970138360897647,
+        "precision": 0.23542784419934243,
+        "recall": 0.5463122650156335,
+        "f1": 0.32100848239224616,
+        "auc": 0.6449442804723732
+      },
+      "layer_-11": {
+        "accuracy": 0.6639207507820647,
+        "balanced_accuracy": 0.601968206785795,
+        "precision": 0.22829586552915154,
+        "recall": 0.5910727390186877,
+        "f1": 0.32219091242837,
+        "auc": 0.6501836753845576
+      },
+      "layer_-10": {
+        "accuracy": 0.6417101147028154,
+        "balanced_accuracy": 0.6037305272795281,
+        "precision": 0.22309744275110552,
+        "recall": 0.6244970559675991,
+        "f1": 0.3203975035437419,
+        "auc": 0.648965940168882
+      },
+      "layer_-9": {
+        "accuracy": 0.6639207507820645,
+        "balanced_accuracy": 0.6081457445377714,
+        "precision": 0.2284444413363446,
+        "recall": 0.5951612526452432,
+        "f1": 0.3224676256357259,
+        "auc": 0.6538686127295972
+      },
+      "layer_-8": {
+        "accuracy": 0.6680917622523462,
+        "balanced_accuracy": 0.6101050308215034,
+        "precision": 0.2293231155076876,
+        "recall": 0.5987885626472178,
+        "f1": 0.3267594090443363,
+        "auc": 0.6583052722019778
+      },
+      "layer_-7": {
+        "accuracy": 0.6663190823774764,
+        "balanced_accuracy": 0.6119420772730769,
+        "precision": 0.23399391820902807,
+        "recall": 0.6015079940799994,
+        "f1": 0.3287019125055123,
+        "auc": 0.6615278285211753
+      },
+      "layer_-6": {
+        "accuracy": 0.6433785192909279,
+        "balanced_accuracy": 0.6146991889432075,
+        "precision": 0.22255644631909616,
+        "recall": 0.6418117691035132,
+        "f1": 0.32398740847608815,
+        "auc": 0.6619749773815178
+      },
+      "layer_-5": {
+        "accuracy": 0.6816475495307612,
+        "balanced_accuracy": 0.6159673404206135,
+        "precision": 0.23474653464977693,
+        "recall": 0.5932674634552392,
+        "f1": 0.32815023945599414,
+        "auc": 0.6667740981798238
+      },
+      "layer_-4": {
+        "accuracy": 0.7053180396246089,
+        "balanced_accuracy": 0.6194640077285074,
+        "precision": 0.2521489576545079,
+        "recall": 0.5611982445797249,
+        "f1": 0.3394482135564213,
+        "auc": 0.6684595381287132
+      },
+      "layer_-3": {
+        "accuracy": 0.6907194994786234,
+        "balanced_accuracy": 0.6161197327460732,
+        "precision": 0.23757108209995947,
+        "recall": 0.5781169211127336,
+        "f1": 0.3315119515958643,
+        "auc": 0.6634299340203508
+      },
+      "layer_-2": {
+        "accuracy": 0.6913451511991658,
+        "balanced_accuracy": 0.6213347514966666,
+        "precision": 0.2462284325915147,
+        "recall": 0.5865127184819243,
+        "f1": 0.337671076458289,
+        "auc": 0.6647928542981525
+      },
+      "layer_-1": {
+        "accuracy": 0.6738269030239833,
+        "balanced_accuracy": 0.6255012116074612,
+        "precision": 0.23703778973146425,
+        "recall": 0.6166856386192868,
+        "f1": 0.33448099408948767,
+        "auc": 0.6617337905421311
+      },
+      "layer_0": {
+        "accuracy": 0.7683003128258603,
+        "balanced_accuracy": 0.6664847787592274,
+        "precision": 0.30423833483503243,
+        "recall": 0.5642759311426884,
+        "f1": 0.38670492172531434,
+        "auc": 0.7424064105739152
+      }
+    },
+    "trained_summary": {
+      "layer_-12": {
+        "accuracy": 0.6850886339937434,
+        "balanced_accuracy": 0.6065274457568035,
+        "precision": 0.3655707409975936,
+        "recall": 0.5317714026038408,
+        "f1": 0.3524017814785087,
+        "auc": 0.5945668234546886
+      },
+      "layer_-11": {
+        "accuracy": 0.6392075078206466,
+        "balanced_accuracy": 0.6119917423618925,
+        "precision": 0.3141911214077438,
+        "recall": 0.6042044956276965,
+        "f1": 0.34357549421971706,
+        "auc": 0.6001140460958025
+      },
+      "layer_-10": {
+        "accuracy": 0.6438998957247132,
+        "balanced_accuracy": 0.6029436797939246,
+        "precision": 0.2978157848343172,
+        "recall": 0.5801694833193222,
+        "f1": 0.33937678048466535,
+        "auc": 0.6021102472775822
+      },
+      "layer_-9": {
+        "accuracy": 0.670490093847758,
+        "balanced_accuracy": 0.6216310002072519,
+        "precision": 0.3551922478738258,
+        "recall": 0.5973092048978194,
+        "f1": 0.3650298133627678,
+        "auc": 0.6138961175496018
+      },
+      "layer_-8": {
+        "accuracy": 0.6657977059436915,
+        "balanced_accuracy": 0.6185813211426535,
+        "precision": 0.2898881706162835,
+        "recall": 0.60833530166774,
+        "f1": 0.35295004085934545,
+        "auc": 0.6060496515426349
+      },
+      "layer_-7": {
+        "accuracy": 0.6647549530761211,
+        "balanced_accuracy": 0.6114332960291274,
+        "precision": 0.30206398785221694,
+        "recall": 0.5923649193627712,
+        "f1": 0.3531979897127023,
+        "auc": 0.6182990265394422
+      },
+      "layer_-6": {
+        "accuracy": 0.7325338894681961,
+        "balanced_accuracy": 0.6504677882257198,
+        "precision": 0.30692033438295013,
+        "recall": 0.5710080823023894,
+        "f1": 0.36938039277562085,
+        "auc": 0.6571273262714182
+      },
+      "layer_-5": {
+        "accuracy": 0.718978102189781,
+        "balanced_accuracy": 0.6182586301233624,
+        "precision": 0.30056778708036774,
+        "recall": 0.5351213219687977,
+        "f1": 0.3566635597574379,
+        "auc": 0.6297271453630133
+      },
+      "layer_-4": {
+        "accuracy": 0.6856100104275288,
+        "balanced_accuracy": 0.6418633663253743,
+        "precision": 0.311790667440249,
+        "recall": 0.6062994821346057,
+        "f1": 0.36039429479032953,
+        "auc": 0.6422042978048127
+      },
+      "layer_-3": {
+        "accuracy": 0.6532846715328466,
+        "balanced_accuracy": 0.6244050143008876,
+        "precision": 0.3119029971484418,
+        "recall": 0.6139185975141936,
+        "f1": 0.36423069879322434,
+        "auc": 0.6568370680197432
+      },
+      "layer_-2": {
+        "accuracy": 0.6491136600625652,
+        "balanced_accuracy": 0.6324887099365093,
+        "precision": 0.29338854048106267,
+        "recall": 0.6400202199638291,
+        "f1": 0.36224964744084803,
+        "auc": 0.6359404611233305
+      },
+      "layer_-1": {
+        "accuracy": 0.7413972888425443,
+        "balanced_accuracy": 0.6424486130487799,
+        "precision": 0.29451797905168614,
+        "recall": 0.5611629960126201,
+        "f1": 0.3726574178541934,
+        "auc": 0.6321539553899659
+      },
+      "layer_0": {
+        "accuracy": 0.8128258602711158,
+        "balanced_accuracy": 0.6801783767224248,
+        "precision": 0.43201643575334153,
+        "recall": 0.544576413561376,
+        "f1": 0.45788288289301443,
+        "auc": 0.7114029365124451
+      }
+    }
+  },
+  "metadata": {
+    "num_layers": 13,
+    "layers_extracted": [
+      -12,
+      -11,
+      -10,
+      -9,
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0
+    ],
+    "num_labels": 14,
+    "label_names": [
+      "No Finding",
+      "Enlarged Cardiomediastinum",
+      "Cardiomegaly",
+      "Lung Lesion",
+      "Airspace Opacity",
+      "Edema",
+      "Consolidation",
+      "Pneumonia",
+      "Atelectasis",
+      "Pneumothorax",
+      "Pleural Effusion",
+      "Pleural Other",
+      "Fracture",
+      "Support Devices"
+    ],
+    "full_dataset_size": 685,
+    "train_size": 548,
+    "val_size": 137,
+    "best_correlation_layer_pearson": "0",
+    "best_correlation_score_pearson": 0.28466376662254333,
+    "best_correlation_layer_spearman": "0",
+    "best_correlation_score_spearman": 0.2775675678418254,
+    "best_threshold_layer": "0",
+    "best_threshold_f1": 0.38670492172531434,
+    "best_trained_layer": "0",
+    "best_trained_f1": 0.45788288289301443
+  }
+}
