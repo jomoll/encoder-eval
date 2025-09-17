@@ -137,21 +137,51 @@ def build_datasets(dataset_id: str,
     train_tf = TrainTransform(image_size, mean, std)
     eval_tf  = EvalTransform(image_size, mean, std)
 
-    def _prepare_train(example):
-        # tokenize caption
-        tok = tokenizer(example["caption"], padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
-        example["input_ids"] = torch.tensor(tok["input_ids"], dtype=torch.long)
-        example["attention_mask"] = torch.tensor(tok["attention_mask"], dtype=torch.long)
-        # image transform
-        example["pixel_values"] = train_tf(example["image"])
-        return example
+    def _prepare_train(examples):
+        # Handle both single examples and batches
+        if isinstance(examples["caption"], list):
+            # Batch processing
+            processed = {
+                "input_ids": [],
+                "attention_mask": [],
+                "pixel_values": []
+            }
+            for caption, image in zip(examples["caption"], examples["image"]):
+                tok = tokenizer(caption, padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
+                processed["input_ids"].append(torch.tensor(tok["input_ids"], dtype=torch.long))
+                processed["attention_mask"].append(torch.tensor(tok["attention_mask"], dtype=torch.long))
+                processed["pixel_values"].append(train_tf(image))
+            return processed
+        else:
+            # Single example processing
+            tok = tokenizer(examples["caption"], padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
+            examples["input_ids"] = torch.tensor(tok["input_ids"], dtype=torch.long)
+            examples["attention_mask"] = torch.tensor(tok["attention_mask"], dtype=torch.long)
+            examples["pixel_values"] = train_tf(examples["image"])
+            return examples
 
-    def _prepare_eval(example):
-        tok = tokenizer(example["caption"], padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
-        example["input_ids"] = torch.tensor(tok["input_ids"], dtype=torch.long)
-        example["attention_mask"] = torch.tensor(tok["attention_mask"], dtype=torch.long)
-        example["pixel_values"] = eval_tf(example["image"])
-        return example
+    def _prepare_eval(examples):
+        # Handle both single examples and batches
+        if isinstance(examples["caption"], list):
+            # Batch processing
+            processed = {
+                "input_ids": [],
+                "attention_mask": [],
+                "pixel_values": []
+            }
+            for caption, image in zip(examples["caption"], examples["image"]):
+                tok = tokenizer(caption, padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
+                processed["input_ids"].append(torch.tensor(tok["input_ids"], dtype=torch.long))
+                processed["attention_mask"].append(torch.tensor(tok["attention_mask"], dtype=torch.long))
+                processed["pixel_values"].append(eval_tf(image))
+            return processed
+        else:
+            # Single example processing
+            tok = tokenizer(examples["caption"], padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
+            examples["input_ids"] = torch.tensor(tok["input_ids"], dtype=torch.long)
+            examples["attention_mask"] = torch.tensor(tok["attention_mask"], dtype=torch.long)
+            examples["pixel_values"] = eval_tf(examples["image"])
+            return examples
 
     ds["train"] = ds["train"].with_transform(_prepare_train)
     if "val" in ds:
