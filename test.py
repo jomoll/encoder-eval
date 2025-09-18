@@ -768,7 +768,7 @@ def compare_methods(trained_results, correlation_results, threshold_results, lab
 def main():
     # ===== CONFIGURATION =====
     # MODEL CONFIGURATION - Change these to switch between models
-    MODEL_TYPE = 'dino'  # Options: 'clip', 'dino'
+    MODEL_TYPE = 'clip'  # Options: 'clip', 'dino'
     
     # Model options for each type:
     if MODEL_TYPE.lower() == 'clip':
@@ -783,7 +783,7 @@ def main():
         # MODEL_NAME = "facebook/dinov3-vitl16-pretrain-lvd1689m"
         # MODEL_NAME = "facebook/dino-vitb16"  # Original DINO
         MODEL_NAME = "facebook/dinov2-large"  # Large DINOv2
-        NUM_LAYERS = 12  # Base models, use 24 for large
+        NUM_LAYERS = 24  # Base models, use 24 for large
     
     # Data configuration
     csv_path = "../mimic-cxr-jpg/2.1.0/mimic-cxr-2.1.0-test-set-labeled.csv"
