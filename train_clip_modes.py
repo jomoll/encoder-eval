@@ -21,11 +21,9 @@ Usage
 pip install torch torchvision transformers datasets pillow tqdm
 
 python train_clip_modes.py \
-  --mode standard \
-  --dataset_id jomoll/silent-heart-dataset \
-  --model_name openai/clip-vit-base-patch32 \
-  --output_dir ./ckpt_standard \
-  --epochs 10 --batch_size 256 --lr 5e-5
+  --mode small_resnet \
+  --output_dir ./ckpt_resnet_group \
+  --epochs 100 --batch_size 1024 --from_scratch --freeze_text
 
 # Group-positive:
 python train_clip_modes.py --mode group_positive --output_dir ./ckpt_group_pos
@@ -239,7 +237,7 @@ def build_datasets(dataset_id: str,
                    max_len: int,
                    mode: str,
                    num_proc: int = 1):
-    ds = load_dataset(dataset_id, cache_dir="./hf_cache")
+    ds = load_dataset(dataset_id)
 
     mean = image_processor.image_mean
     std = image_processor.image_std
@@ -536,6 +534,113 @@ class SmallResNetCLIP(nn.Module):
             image_embeds=image_features,
         )
 
+class TinyResNetVision(nn.Module):
+    """Tiny ResNet-style vision encoder for 224x224 -> vector (much smaller than SmallResNet)"""
+    def __init__(self, hidden_size: int = 256):
+        super().__init__()
+        # Very lightweight architecture
+        # Initial conv: 224x224x3 -> 112x112x32
+        self.stem = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=7, stride=2, padding=3, bias=False),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)  # 112x112 -> 56x56
+        )
+        
+        # Aggressive downsampling: 56x56 -> 7x7
+        self.downsample = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=False),  # 56x56 -> 28x28
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False),  # 28x28 -> 14x14
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),  # 14x14 -> 7x7
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True)
+        )
+        
+        # Only 2 tiny residual blocks at 7x7 resolution
+        self.res_blocks = nn.ModuleList([
+            self._make_res_block(128, 128) for _ in range(2)
+        ])
+        
+        # Global average pooling + projection
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.projection = nn.Linear(128, hidden_size)
+        
+    def _make_res_block(self, in_channels, out_channels):
+        return nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+        )
+    
+    def forward(self, pixel_values):
+        x = self.stem(pixel_values)       # [B, 32, 56, 56]
+        x = self.downsample(x)            # [B, 128, 7, 7]
+        
+        # Apply residual blocks
+        for res_block in self.res_blocks:
+            residual = x
+            x = res_block(x)
+            x = F.relu(x + residual)      # residual connection
+            
+        x = self.avgpool(x)               # [B, 128, 1, 1]
+        x = torch.flatten(x, 1)           # [B, 128]
+        x = self.projection(x)            # [B, hidden_size]
+        return x
+
+class TinyResNetCLIP(nn.Module):
+    """CLIP model with tiny ResNet vision encoder"""
+    def __init__(self, clip_model: CLIPModel, vision_hidden_size: int = 256):
+        super().__init__()
+        self.text_model = clip_model.text_model
+        self.text_projection = clip_model.text_projection
+        self.logit_scale = clip_model.logit_scale
+        
+        # Replace vision model with tiny ResNet
+        self.vision_model = TinyResNetVision(vision_hidden_size)
+        # Keep same projection dim as original CLIP
+        self.visual_projection = nn.Linear(vision_hidden_size, clip_model.config.projection_dim)
+        
+        self.config = clip_model.config
+        
+    def get_text_features(self, input_ids=None, attention_mask=None, **kwargs):
+        text_outputs = self.text_model(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = text_outputs.pooler_output
+        text_features = self.text_projection(pooled_output)
+        return text_features
+        
+    def get_image_features(self, pixel_values=None, **kwargs):
+        vision_outputs = self.vision_model(pixel_values)
+        image_features = self.visual_projection(vision_outputs)
+        return image_features
+    
+    def forward(self, input_ids=None, pixel_values=None, attention_mask=None, return_loss=True, **kwargs):
+        image_features = self.get_image_features(pixel_values)
+        text_features = self.get_text_features(input_ids, attention_mask)
+        
+        # Normalize features
+        image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
+        text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
+        
+        # Compute logits
+        logit_scale = self.logit_scale.exp()
+        logits_per_text = torch.matmul(text_features, image_features.t()) * logit_scale
+        logits_per_image = logits_per_text.t()
+        
+        # Create output similar to CLIPModel
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            logits_per_image=logits_per_image,
+            logits_per_text=logits_per_text,
+            text_embeds=text_features,
+            image_embeds=image_features,
+        )
+
 def evaluate(state: TrainState, loader, mode: str) -> Dict[str, float]:
     state.model.eval()
     tot_loss, n = 0.0, 0
@@ -548,7 +653,7 @@ def evaluate(state: TrainState, loader, mode: str) -> Dict[str, float]:
             caption_id = batch.caption_id.to(state.device, non_blocking=True)
             with autocast(dtype=state.amp_dtype):
                 out = state.model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask, return_loss=False)
-                if mode == "group_positive":
+                if mode in ["group_positive"]:#, "small_resnet", "tiny_resnet"]:
                     loss = clip_loss_group_positive(out.logits_per_image, out.logits_per_text, caption_id)
                 else:
                     loss = clip_loss_standard(out.logits_per_image, out.logits_per_text)
@@ -603,10 +708,15 @@ def train(args):
 
     # --- Model construction ---
     if args.mode == "small_resnet":
-        # Load base CLIP model first
         base_model = CLIPModel.from_pretrained(args.model_name)
         model = SmallResNetCLIP(base_model, vision_hidden_size=512)
         print("Initialized CLIP with small ResNet vision encoder")
+        print_model_info(model, "SmallResNetCLIP")
+    elif args.mode == "tiny_resnet":
+        base_model = CLIPModel.from_pretrained(args.model_name)
+        model = TinyResNetCLIP(base_model, vision_hidden_size=256)
+        print("Initialized CLIP with tiny ResNet vision encoder")
+        print_model_info(model, "TinyResNetCLIP")
     elif args.from_scratch:
         # ViT-B/32-ish config, adjust if you prefer another size
         text_cfg = {
@@ -635,9 +745,11 @@ def train(args):
         )
         model = CLIPModel(cfg)
         print("Initialized CLIP model from scratch")
+        print_model_info(model, "CLIP (from scratch)")
     else:
         model = CLIPModel.from_pretrained(args.model_name)
         print(f"Loaded pretrained CLIP model: {args.model_name}")
+        print_model_info(model, "CLIP (pretrained)")
 
     model.to(device)
 
@@ -648,6 +760,7 @@ def train(args):
         for p in model.text_projection.parameters(): 
             p.requires_grad_(False)
         print("Froze text encoder")
+        print_model_info(model, "CLIP (after freezing text)")
 
     image_proj = None
     if args.mode == "clip_supcon":
@@ -676,6 +789,7 @@ def train(args):
 
     # Helper function to save model checkpoint
     def save_checkpoint(epoch, is_best=False, is_periodic=False):
+        epoch=int(epoch)+1
         if is_best:
             save_dir = os.path.join(args.output_dir, "best")
         elif is_periodic:
@@ -686,11 +800,12 @@ def train(args):
         os.makedirs(save_dir, exist_ok=True)
         
         # Handle different model types
-        if args.mode == "small_resnet":
+        if args.mode in ["small_resnet", "tiny_resnet"]:
             # Save custom model components separately
+            vision_hidden_size = 512 if args.mode == "small_resnet" else 256
             torch.save({
                 'model_state_dict': model.state_dict(),
-                'vision_hidden_size': 512,  # from SmallResNetCLIP init
+                'vision_hidden_size': vision_hidden_size,
                 'mode': args.mode,
                 'epoch': epoch,
                 'optimizer_state_dict': optimizer.state_dict(),
@@ -741,7 +856,7 @@ def train(args):
 
             with autocast(dtype=amp_dtype):
                 out = model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask, return_loss=False)
-                if args.mode == "group_positive":
+                if args.mode in ["group_positive", "tiny_resnet"]:
                     loss = clip_loss_group_positive(out.logits_per_image, out.logits_per_text, caption_id)
                 else:
                     loss = clip_loss_standard(out.logits_per_image, out.logits_per_text)
@@ -807,6 +922,26 @@ def train(args):
                 'visual_projection_state_dict': best_model.visual_projection.state_dict()
             }, os.path.join(best_dir, "custom_model_info.pt"))
             
+        elif args.mode == "tiny_resnet":
+            # Reconstruct custom model
+            base_model = CLIPModel.from_pretrained(args.model_name, weights_only=False)
+            best_model = TinyResNetCLIP(base_model, vision_hidden_size=256)
+            checkpoint = torch.load(os.path.join(best_dir, "pytorch_model.bin"))
+            best_model.load_state_dict(checkpoint['model_state_dict'])
+            
+            # For hub upload, we'll save the base CLIP components and a custom config
+            best_model_for_hub = base_model  # Upload the base model
+            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
+            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
+            
+            # Save custom model info in a separate file
+            torch.save({
+                'custom_model_type': 'tiny_resnet',
+                'vision_hidden_size': 256,
+                'tiny_resnet_state_dict': best_model.vision_model.state_dict(),
+                'visual_projection_state_dict': best_model.visual_projection.state_dict()
+            }, os.path.join(best_dir, "custom_model_info.pt"))
+            
         else:
             best_model_for_hub = CLIPModel.from_pretrained(best_dir)
             best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
@@ -825,8 +960,8 @@ def train(args):
         best_image_processor.push_to_hub(hub_name, organization="jomoll")
         
         # Upload custom model info if it exists
-        if args.mode == "small_resnet":
-            print(f"Note: Custom SmallResNet model saved locally at {best_dir}")
+        if args.mode in ["small_resnet", "tiny_resnet"]:
+            print(f"Note: Custom {args.mode} model saved locally at {best_dir}")
             print("Custom model components saved in custom_model_info.pt")
 
     print("Training done. Best val_loss:", best_val if val_loader is not None else "N/A")
@@ -837,7 +972,7 @@ def train(args):
         print("Dumping val embeddings to:", dump_path)
         
         # Use the actual trained model for embedding extraction
-        eval_model = best_model if args.mode == "small_resnet" and 'best_model' in locals() else model
+        eval_model = best_model if args.mode in ["small_resnet", "tiny_resnet"] and 'best_model' in locals() else model
         eval_model.eval()
         
         all_img, all_txt = [], []
@@ -856,7 +991,7 @@ def train(args):
         print("Saved:", dump_path)
 
 def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-patch32"):
-    """Load a custom SmallResNetCLIP model from saved checkpoint"""
+    """Load a custom SmallResNetCLIP or TinyResNetCLIP model from saved checkpoint"""
     import os
     
     # Check if it's a custom model
@@ -875,22 +1010,44 @@ def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-p
             model.visual_projection.load_state_dict(custom_info['visual_projection_state_dict'])
             
             return model
+        
+        elif custom_info['custom_model_type'] == 'tiny_resnet':
+            # Reconstruct the model
+            base_model = CLIPModel.from_pretrained(model_name)
+            model = TinyResNetCLIP(base_model, vision_hidden_size=custom_info['vision_hidden_size'])
+            
+            # Load the custom weights
+            model.vision_model.load_state_dict(custom_info['tiny_resnet_state_dict'])
+            model.visual_projection.load_state_dict(custom_info['visual_projection_state_dict'])
+            
+            return model
     
     # Fall back to standard CLIP model
     return CLIPModel.from_pretrained(model_path)
 
-# Usage example (add this to your docstring):
-# To load a trained SmallResNet model:
-# model = load_custom_model("./outputs/ckpt_small_resnet/best")
+def count_parameters(model):
+    """Count total and trainable parameters in a model"""
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    return total_params, trainable_params
+
+def print_model_info(model, model_name="Model"):
+    """Print model parameter counts"""
+    total, trainable = count_parameters(model)
+    print(f"{model_name} Parameters:")
+    print(f"  Total: {total:,}")
+    print(f"  Trainable: {trainable:,}")
+    print(f"  Frozen: {total - trainable:,}")
+    return total, trainable
 
 def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", type=str, 
-                    choices=["standard","collision_free","group_positive","clip_supcon","region_preserve","small_resnet"], 
+                    choices=["standard","collision_free","group_positive","clip_supcon","region_preserve","small_resnet","tiny_resnet"], 
                     default="standard")
 
-    ap.add_argument("--dataset_id", type=str, default="jomoll/silent-heart-dataset")
-    ap.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32")
+    ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
+    ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
     ap.add_argument("--epochs", type=int, default=10)
