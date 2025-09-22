@@ -173,18 +173,10 @@ def mask_special_region(img: Image.Image, ex: Dict[str, Any]) -> Image.Image:
 def make_collate_fn(task: str):
     def collate(batch):
         pixel_values = torch.stack([b["pixel_values"] for b in batch], dim=0)
-        if task == "both":
-            heart_labels = [b["heart_label"] for b in batch]
-            triangle_labels = [b["triangle_label"] for b in batch]
-            return {
-                "pixel_values": pixel_values, 
-                "heart_label": heart_labels, 
-                "triangle_label": triangle_labels
-            }
-        else:
-            labels = [b["label"] for b in batch]
-            return {"pixel_values": pixel_values, "label": labels}
+        labels = [b["label"] for b in batch]
+        return {"pixel_values": pixel_values, "label": labels}
     return collate
+
 # ----------------------------
 # Dataset wrapper with with_transform
 # ----------------------------
@@ -241,7 +233,7 @@ def has_triangle_named(ex: Dict[str, Any]) -> int:
 def build_dataset_with_labels(dataset_id: str,
                               image_processor: CLIPImageProcessor,
                               split: str,
-                              task: str = "heart",
+                              task: str = "marker",
                               mask_special: bool = False):
     ds = load_dataset(dataset_id, split=split)
     image_size = image_processor.size["shortest_edge"]
@@ -249,11 +241,14 @@ def build_dataset_with_labels(dataset_id: str,
 
     # helper: resolve labels based on task
     def resolve_labels(ex):
-        labels = {}
-        if "marker" in ex:
-            labels["marker"] = 1 if ex["marker"] == "L" else 0
-
-        return labels
+        if task == "marker":
+            if "marker" in ex:
+                # Convert L to 1, R (or anything else) to 0
+                return 1 if ex["marker"] == "L" else 0
+            else:
+                raise ValueError("Could not resolve 'marker' field for laterality task")
+        else:
+            raise ValueError(f"Unknown task: {task}")
 
     def _transform(examples):
         # Handle both single example and batched examples
@@ -263,28 +258,18 @@ def build_dataset_with_labels(dataset_id: str,
             pixel_values, labels = [], []
             for i, img in enumerate(images):
                 ex_single = {k: (v[i] if isinstance(v, list) else v) for k, v in examples.items()}
-                if mask_special and task in ["heart", "both"]:
+                if mask_special:  # Remove heart-specific condition
                     img = mask_special_region(img, ex_single)
                 pixel_values.append(tf(img))
                 labels.append(resolve_labels(ex_single))
             examples["pixel_values"] = pixel_values
-            if task == "both":
-                # Split into separate label lists
-                examples["heart_label"] = [l["heart"] for l in labels]
-                examples["triangle_label"] = [l["triangle"] for l in labels]
-            else:
-                examples["label"] = labels
+            examples["label"] = labels
         else:
             img = examples["image"]
-            if mask_special and task in ["heart", "both"]:
+            if mask_special:  # Remove heart-specific condition
                 img = mask_special_region(img, examples)
             examples["pixel_values"] = tf(img)
-            labels = resolve_labels(examples)
-            if task == "both":
-                examples["heart_label"] = labels["heart"]
-                examples["triangle_label"] = labels["triangle"]
-            else:
-                examples["label"] = labels
+            examples["label"] = resolve_labels(examples)
         return examples
 
     ds = ds.with_transform(_transform)
@@ -320,40 +305,22 @@ def get_image_features_any(model, pixel_values):
 def embed_split(model, loader: DataLoader, device, amp_dtype, task: str):
     model.eval()
     feats = []
-    if task == "both":
-        heart_labels, triangle_labels = [], []
-    else:
-        labels = []
+    labels = []
         
     autocast = torch.cuda.amp.autocast if device.type == "cuda" else torch.cpu.amp.autocast
     with torch.no_grad():
         for batch in tqdm(loader, desc="Embedding"):
             pixel_values = batch["pixel_values"].to(device, non_blocking=True)
-            
-            if task == "both":
-                heart_y = torch.tensor(batch["heart_label"], dtype=torch.long)
-                triangle_y = torch.tensor(batch["triangle_label"], dtype=torch.long)
-            else:
-                y = torch.tensor(batch["label"], dtype=torch.long)
+            y = torch.tensor(batch["label"], dtype=torch.long)
                 
             with autocast(dtype=amp_dtype):
                 emb = get_image_features_any(model, pixel_values)
             feats.append(emb.detach().cpu())
-            
-            if task == "both":
-                heart_labels.append(heart_y)
-                triangle_labels.append(triangle_y)
-            else:
-                labels.append(y)
+            labels.append(y)
                 
     X = torch.cat(feats, dim=0)
-    if task == "both":
-        y_heart = torch.cat(heart_labels, dim=0)
-        y_triangle = torch.cat(triangle_labels, dim=0)
-        return X, {"heart": y_heart, "triangle": y_triangle}
-    else:
-        y = torch.cat(labels, dim=0)
-        return X, y
+    y = torch.cat(labels, dim=0)
+    return X, y
 
 # ----------------------------
 # Probe training
@@ -432,7 +399,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-laterality-markers-lite-reports")
     ap.add_argument("--model_path", type=str, required=True, help="Path or HF id for the fine-tuned model")
-    ap.add_argument("--task", type=str, choices=["marker"], default="marker")  # Added "both"
+    ap.add_argument("--task", type=str, choices=["marker"], default="marker")
     ap.add_argument("--split_train", type=str, default="train_reports")
     ap.add_argument("--split_eval", type=str, default="train_reports")
     ap.add_argument("--batch_size", type=int, default=512)
@@ -443,7 +410,7 @@ def main():
     ap.add_argument("--epochs", type=int, default=20)
     ap.add_argument("--lr", type=float, default=5e-3)
     ap.add_argument("--weight_decay", type=float, default=0.0)
-    ap.add_argument("--mask_special", action="store_true", help="Mask out the heart region (only for --task heart)")
+    ap.add_argument("--mask_special", action="store_true", help="Mask out special regions (if applicable)")
     ap.add_argument("--tune_threshold_on", type=str, choices=["train","eval","none"], default="eval")
     ap.add_argument("--tune_policy", type=str, choices=["acc","youden","f1"], default="acc")
     ap.add_argument("--calibrate_on", type=str, choices=["none","train","eval"], default="none")
@@ -478,199 +445,63 @@ def main():
     dl_eval  = DataLoader(ds_eval,  batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                           pin_memory=(device.type=="cuda"), collate_fn=collate)
 
-    # Embed
-    if args.task == "both":
-        Xtr, ytr_dict = embed_split(model, dl_train, device, amp_dtype, args.task)
-        Xev, yev_dict = embed_split(model, dl_eval, device, amp_dtype, args.task)
-        
-        # Convert embeddings to float32
-        Xtr = Xtr.float().to(device)
-        Xev = Xev.float().to(device)
-        
-        # Convert labels
-        ytr_heart = ytr_dict["marker"].to(device)
-        yev_heart = yev_dict["marker"].to(device)
-        
-        # Train two separate probes
-        print("Training heart probe...")
-        probe_heart = train_probe(Xtr, ytr_heart, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
+    # Embed - simplified to single task only
+    Xtr, ytr = embed_split(model, dl_train, device, amp_dtype, args.task)
+    Xev, yev = embed_split(model, dl_eval, device, amp_dtype, args.task)
+    
+    # Convert embeddings to float32
+    Xtr = Xtr.float().to(device); ytr = ytr.to(device)
+    Xev = Xev.float().to(device); yev = yev.to(device)
 
-        # Evaluate both probes
-        results = {}
-        
-        for task_name, probe, ytr_task, yev_task in [
-            ("marker", probe_heart, ytr_heart, yev_heart),
-        ]:
-            print(f"\nEvaluating {task_name} probe...")
-            
-            # Get logits
-            probe.eval()
-            with torch.no_grad():
-                logits_tr = probe(Xtr).cpu()
-                logits_ev = probe(Xev).cpu()
-            p_tr = logits_tr.softmax(dim=1)[:,1].numpy()
-            p_ev = logits_ev.softmax(dim=1)[:,1].numpy()
-            
-            # Calibration (optional)
-            T_fit = 1.0
-            if args.calibrate_on != "none":
-                if args.calibrate_on == "train":
-                    scaler, T_fit = calibrate_temperature(logits_tr.to(device), ytr_task.to(device))
-                else:
-                    scaler, T_fit = calibrate_temperature(logits_ev.to(device), yev_task.to(device))
-                with torch.no_grad():
-                    logits_tr = scaler(logits_tr.to(device)).cpu()
-                    logits_ev = scaler(logits_ev.to(device)).cpu()
-                p_tr = logits_tr.softmax(dim=1)[:,1].numpy()
-                p_ev = logits_ev.softmax(dim=1)[:,1].numpy()
-            
-            # Threshold tuning
-            best_thr = 0.5
-            best_ref = None
-            if args.tune_threshold_on == "train":
-                best_thr, _ = pick_threshold(ytr_task.cpu().numpy(), p_tr, policy=args.tune_policy)
-                best_ref = "train"
-            elif args.tune_threshold_on == "eval":
-                best_thr, _ = pick_threshold(yev_task.cpu().numpy(), p_ev, policy=args.tune_policy)
-                best_ref = "eval"
-            
-            # Metrics
-            auc = roc_auc_score(yev_task.cpu().numpy(), p_ev)
-            pred_default = (p_ev >= 0.5).astype(int)
-            pred_argmax  = logits_ev.argmax(dim=1).numpy()
-            pred_best    = (p_ev >= best_thr).astype(int)
-            
-            acc_default = accuracy_score(yev_task.cpu().numpy(), pred_default)
-            acc_argmax  = accuracy_score(yev_task.cpu().numpy(), pred_argmax)
-            acc_best    = accuracy_score(yev_task.cpu().numpy(), pred_best)
-            bal_acc     = balanced_accuracy_score(yev_task.cpu().numpy(), pred_best)
-            f1          = f1_score(yev_task.cpu().numpy(), pred_best)
-            
-            results[task_name] = {
-                "task": task_name,
-                "eval_auc": float(auc),
-                "eval_acc_default@0.5": float(acc_default),
-                "eval_acc_argmax": float(acc_argmax),
-                "eval_acc_best": float(acc_best),
-                "best_threshold": float(best_thr),
-                "threshold_ref": best_ref,
-                "balanced_accuracy": float(bal_acc),
-                "f1": float(f1),
-                "temperature": float(T_fit),
-                "n_train": int(len(ds_train)),
-                "n_eval": int(len(ds_eval))
-            }
-        
-        # Save results
-        os.makedirs(mode_save_dir, exist_ok=True)
-        
-        # Save combined results
-        with open(os.path.join(mode_save_dir, "metrics_both.json"), "w") as f:
-            json.dump(results, f, indent=2)
-            
-        # Save individual results for compatibility
-        for task_name, result in results.items():
-            task_dir = os.path.join(mode_save_dir, f"{task_name}_results")
-            os.makedirs(task_dir, exist_ok=True)
-            with open(os.path.join(task_dir, "metrics.json"), "w") as f:
-                json.dump(result, f, indent=2)
-        
-        print("\n" + "="*50)
-        print("BOTH TASKS RESULTS:")
-        print("="*50)
-        for task_name, result in results.items():
-            print(f"\n{task_name.upper()} TASK:")
-            print(json.dumps(result, indent=2))
-        
-        # Save artifacts
-        torch.save({
-            "X_train": Xtr.cpu(), 
-            "y_train_heart": ytr_heart.cpu(), 
-            "y_train_triangle": ytr_triangle.cpu(),
-            "X_eval": Xev.cpu(), 
-            "y_eval_heart": yev_heart.cpu(),
-            "y_eval_triangle": yev_triangle.cpu()
-        }, os.path.join(mode_save_dir, "embeddings.pt"))
-        
-        torch.save({
-            "heart_probe": probe_heart.state_dict(),
-            "triangle_probe": probe_triangle.state_dict()
-        }, os.path.join(mode_save_dir, "linear_probes.pt"))
-        
-        print(f"\nSaved both probe artifacts to {mode_save_dir}")
-        
-    else:
-        # Original single-task logic
-        Xtr, ytr = embed_split(model, dl_train, device, amp_dtype, args.task)
-        Xev, yev = embed_split(model, dl_eval, device, amp_dtype, args.task)
-        
-        # Convert embeddings to float32
-        Xtr = Xtr.float().to(device); ytr = ytr.to(device)
-        Xev = Xev.float().to(device); yev = yev.to(device)
+    # Train linear probe
+    probe = train_probe(Xtr, ytr, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
 
-        # Train linear probe
-        probe = train_probe(Xtr, ytr, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
+    # Collect logits on splits
+    probe.eval()
+    with torch.no_grad():
+        logits_tr = probe(Xtr).cpu()
+        logits_ev = probe(Xev).cpu()
+    p_tr = logits_tr.softmax(dim=1)[:,1].numpy()
+    p_ev = logits_ev.softmax(dim=1)[:,1].numpy()
 
-        # Collect logits on splits
-        probe.eval()
+    # Calibration (optional)
+    T_fit = 1.0
+    if args.calibrate_on != "none":
+        if args.calibrate_on == "train":
+            scaler, T_fit = calibrate_temperature(logits_tr.to(device), ytr.to(device))
+        else:
+            scaler, T_fit = calibrate_temperature(logits_ev.to(device), yev.to(device))
         with torch.no_grad():
-            logits_tr = probe(Xtr).cpu()
-            logits_ev = probe(Xev).cpu()
+            logits_tr = scaler(logits_tr.to(device)).cpu()
+            logits_ev = scaler(logits_ev.to(device)).cpu()
         p_tr = logits_tr.softmax(dim=1)[:,1].numpy()
         p_ev = logits_ev.softmax(dim=1)[:,1].numpy()
 
-        # Calibration (optional)
-        T_fit = 1.0
-        if args.calibrate_on != "none":
-            if args.calibrate_on == "train":
-                scaler, T_fit = calibrate_temperature(logits_tr.to(device), ytr.to(device))
-            else:
-                scaler, T_fit = calibrate_temperature(logits_ev.to(device), yev.to(device))
-            with torch.no_grad():
-                logits_tr = scaler(logits_tr.to(device)).cpu()
-                logits_ev = scaler(logits_ev.to(device)).cpu()
-            p_tr = logits_tr.softmax(dim=1)[:,1].numpy()
-            p_ev = logits_ev.softmax(dim=1)[:,1].numpy()
+    # Threshold tuning
+    best_thr = 0.5
+    best_ref = None
+    if args.tune_threshold_on == "train":
+        best_thr, _ = pick_threshold(ytr.cpu().numpy(), p_tr, policy=args.tune_policy)
+        best_ref = "train"
+    elif args.tune_threshold_on == "eval":
+        best_thr, _ = pick_threshold(yev.cpu().numpy(), p_ev, policy=args.tune_policy)
+        best_ref = "eval"
 
-        # Threshold tuning
-        best_thr = 0.5
-        best_ref = None
-        if args.tune_threshold_on == "train":
-            best_thr, _ = pick_threshold(ytr.cpu().numpy(), p_tr, policy=args.tune_policy)
-            best_ref = "train"
-        elif args.tune_threshold_on == "eval":
-            best_thr, _ = pick_threshold(yev.cpu().numpy(), p_ev, policy=args.tune_policy)
-            best_ref = "eval"
+    # Metrics (eval split)
+    auc = roc_auc_score(yev.cpu().numpy(), p_ev)
+    pred_default = (p_ev >= 0.5).astype(int)
+    pred_argmax  = logits_ev.argmax(dim=1).numpy()
+    pred_best    = (p_ev >= best_thr).astype(int)
 
-        # Metrics (eval split)
-        auc = roc_auc_score(yev.cpu().numpy(), p_ev)
-        pred_default = (p_ev >= 0.5).astype(int)
-        pred_argmax  = logits_ev.argmax(dim=1).numpy()
-        pred_best    = (p_ev >= best_thr).astype(int)
+    acc_default = accuracy_score(yev.cpu().numpy(), pred_default)
+    acc_argmax  = accuracy_score(yev.cpu().numpy(), pred_argmax)
+    acc_best    = accuracy_score(yev.cpu().numpy(), pred_best)
+    bal_acc     = balanced_accuracy_score(yev.cpu().numpy(), pred_best)
+    f1          = f1_score(yev.cpu().numpy(), pred_best)
 
-        acc_default = accuracy_score(yev.cpu().numpy(), pred_default)
-        acc_argmax  = accuracy_score(yev.cpu().numpy(), pred_argmax)
-        acc_best    = accuracy_score(yev.cpu().numpy(), pred_best)
-        bal_acc     = balanced_accuracy_score(yev.cpu().numpy(), pred_best)
-        f1          = f1_score(yev.cpu().numpy(), pred_best)
-
-        os.makedirs(mode_save_dir, exist_ok=True)
-        with open(os.path.join(mode_save_dir, "metrics.json"), "w") as f:
-            json.dump({
-                "task": args.task,
-                "eval_auc": float(auc),
-                "eval_acc_default@0.5": float(acc_default),
-                "eval_acc_argmax": float(acc_argmax),
-                "eval_acc_best": float(acc_best),
-                "best_threshold": float(best_thr),
-                "threshold_ref": best_ref,
-                "balanced_accuracy": float(bal_acc),
-                "f1": float(f1),
-                "temperature": float(T_fit),
-                "n_train": int(len(ds_train)),
-                "n_eval": int(len(ds_eval))
-            }, f, indent=2)
-        print(json.dumps({
+    os.makedirs(mode_save_dir, exist_ok=True)
+    with open(os.path.join(mode_save_dir, "metrics.json"), "w") as f:
+        json.dump({
             "task": args.task,
             "eval_auc": float(auc),
             "eval_acc_default@0.5": float(acc_default),
@@ -683,13 +514,27 @@ def main():
             "temperature": float(T_fit),
             "n_train": int(len(ds_train)),
             "n_eval": int(len(ds_eval))
-        }, indent=2))
+        }, f, indent=2)
+    print(json.dumps({
+        "task": args.task,
+        "eval_auc": float(auc),
+        "eval_acc_default@0.5": float(acc_default),
+        "eval_acc_argmax": float(acc_argmax),
+        "eval_acc_best": float(acc_best),
+        "best_threshold": float(best_thr),
+        "threshold_ref": best_ref,
+        "balanced_accuracy": float(bal_acc),
+        "f1": float(f1),
+        "temperature": float(T_fit),
+        "n_train": int(len(ds_train)),
+        "n_eval": int(len(ds_eval))
+    }, indent=2))
 
-        # Save artifacts
-        torch.save({"X_train": Xtr.cpu(), "y_train": ytr.cpu(), "X_eval": Xev.cpu(), "y_eval": yev.cpu()},
-                   os.path.join(mode_save_dir, "embeddings.pt"))
-        torch.save(probe.state_dict(), os.path.join(mode_save_dir, "linear_probe.pt"))
-        print("Saved probe artifacts to", mode_save_dir)
+    # Save artifacts
+    torch.save({"X_train": Xtr.cpu(), "y_train": ytr.cpu(), "X_eval": Xev.cpu(), "y_eval": yev.cpu()},
+               os.path.join(mode_save_dir, "embeddings.pt"))
+    torch.save(probe.state_dict(), os.path.join(mode_save_dir, "linear_probe.pt"))
+    print("Saved probe artifacts to", mode_save_dir)
 
 if __name__ == "__main__":
     main()
