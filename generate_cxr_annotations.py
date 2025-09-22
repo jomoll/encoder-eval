@@ -8,7 +8,7 @@ from google import genai
 from google.genai import types as genai_types
 from tqdm.asyncio import tqdm
 
-CXR_IMAMGES = "StanfordAIMI/mimic-cxr-images-512"
+CXR_IMAMGES = "data/mimic-cxr-images-512"
 API_KEY = "AIzaSyC-LwOBfcEiBmrVHwYxYW0NVzUdoC1GEqM"
 PROMPT = """You are labeling a chest radiograph CORNER CROP. 
 Task: decide if a true laterality marker is present in THIS CROP only.
@@ -74,7 +74,6 @@ async def process_single_item(item, semaphore):
         
         if data:
             return {
-                "image_id": item['image_id'],
                 "marker_present": data["marker_present"], 
                 "marker": data["marker"],
                 "bbox": data["bbox"],
@@ -82,7 +81,6 @@ async def process_single_item(item, semaphore):
             }
         else:
             return {
-                "image_id": item['image_id'],
                 "marker_present": False,
                 "marker": "UNKNOWN", 
                 "bbox": [],
@@ -115,7 +113,8 @@ async def generate_dataset_async(dataset, max_items=100, max_concurrent=10):
     # Create dataset
     new_df = pd.DataFrame(records)
     new_dataset = Dataset.from_pandas(new_df)
-    
+    # save locally
+    new_dataset.save_to_disk("/data/moll/mimic-cxr-laterality-markers")
     # Upload to huggingface
     print("Uploading to Hugging Face...")
     new_dataset.push_to_hub("jomoll/mimic-cxr-laterality-markers")
