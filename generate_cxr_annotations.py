@@ -3,15 +3,16 @@ import os
 import json
 import asyncio
 import aiohttp
-from datasets import load_dataset, Dataset
+from datasets import load_dataset, Dataset, Features, Value, Image, Sequence, DatasetDict
 from google import genai
 from google.genai import types as genai_types
 from tqdm.asyncio import tqdm
 
-CXR_IMAMGES = "data/mimic-cxr-images-512"
+CXR_IMAGES = "data/mimic-cxr-images-512"
+CXR_IMAGES2 = "StanfordAIMI/mimic-cxr-images-512"
 API_KEY = "AIzaSyC-LwOBfcEiBmrVHwYxYW0NVzUdoC1GEqM"
-PROMPT = """You are labeling a chest radiograph CORNER CROP. 
-Task: decide if a true laterality marker is present in THIS CROP only.
+PROMPT = """You are labeling a chest radiographs. 
+Task: decide if a true laterality marker is present in this image.
 
 Laterality markers are single letters "L" or "R" (or the words LEFT/RIGHT) physically burned into the image or as small digital overlays near the border.
 
@@ -25,6 +26,18 @@ Return ONLY strict JSON:
   "confidence": <0.0-1.0>
 }}"""
 
+PROMPT_LITE = """You are labeling a chest radiographs. 
+Task: decide if a true laterality marker is present in this image.
+
+Laterality markers are single letters "L" or "R" (or the words LEFT/RIGHT) physically burned into the image or as small digital overlays near the border.
+
+IGNORE and do NOT count: AP, PA, LAT, SUPINE, PORTABLE, TECHNICAL OVERLAYS, DATES, PATIENT NAMES, HOSPITAL NAMES, GRIDLINES, WATERMARKS.
+
+Return ONLY strict JSON:
+{{
+  "marker_present": <true|false>,
+  "marker": "<L|R|UNKNOWN>",
+}}"""
 # Create async client
 client = genai.Client(api_key=API_KEY)
 
@@ -36,8 +49,8 @@ async def gen_response_async(image, semaphore):
             # Note: If genai client doesn't support async, use aiohttp instead
             response = await asyncio.to_thread(
                 client.models.generate_content,
-                model="gemini-2.5-pro", 
-                contents=[image, PROMPT],
+                model="gemini-2.5-flash-lite", 
+                contents=[image, PROMPT_LITE],
                 config=cfg
             )
             return response
@@ -69,11 +82,14 @@ async def process_single_item(item, semaphore):
     """Process a single dataset item"""
     try:
         image = item['image']
+        path = item['path']
         response = await gen_response_async(image, semaphore)
         data = parse_response(response)
         
         if data:
             return {
+                "image": image,
+                "path": path,
                 "marker_present": data["marker_present"], 
                 "marker": data["marker"],
                 "bbox": data["bbox"],
@@ -81,6 +97,8 @@ async def process_single_item(item, semaphore):
             }
         else:
             return {
+                "image": image,
+                "path": path,
                 "marker_present": False,
                 "marker": "UNKNOWN", 
                 "bbox": [],
@@ -92,50 +110,62 @@ async def process_single_item(item, semaphore):
 
 async def generate_dataset_async(dataset, max_items=100, max_concurrent=10):
     """Generate dataset with async processing"""
-    # Limit concurrent API calls to avoid rate limits
     semaphore = asyncio.Semaphore(max_concurrent)
-    
-    # Take subset of dataset
     items = dataset.select(range(min(len(dataset), max_items)))
     
-    # Create tasks for all items
     tasks = [process_single_item(item, semaphore) for item in items]
     
-    # Process with progress bar
     print(f"Processing {len(tasks)} images with {max_concurrent} concurrent requests...")
     results = await tqdm.gather(*tasks, desc="Processing images")
     
-    # Filter out None results
     records = [r for r in results if r is not None]
     
     print(f"Successfully processed {len(records)}/{len(tasks)} images")
     
-    # Create dataset
-    new_df = pd.DataFrame(records)
-    new_dataset = Dataset.from_pandas(new_df)
+    features = Features({
+        'image': Image(),
+        'path': Value('string'),
+        'marker_present': Value('bool'),
+        'marker': Value('string'),
+        'bbox': Sequence(Value('int64')),  # Assumes integers, use 'float64' if needed
+        'confidence': Value('float64')
+    })
+    
+    new_dataset = Dataset.from_list(records, features=features)
+    
+    # Filter for valid samples
+    filtered_dataset = new_dataset.filter(
+        lambda example: example['marker_present'] and example['marker'] in ['L', 'R']
+    )
+    
+    dataset_with_splits = DatasetDict({
+        "train": new_dataset,
+        "train_filtered": filtered_dataset
+    })
+
     # save locally
-    new_dataset.save_to_disk("/data/moll/mimic-cxr-laterality-markers")
+    #dataset_with_splits.save_to_disk("/data/moll/mimic-cxr-laterality-markers")
     # Upload to huggingface
     print("Uploading to Hugging Face...")
-    new_dataset.push_to_hub("jomoll/mimic-cxr-laterality-markers")
+    dataset_with_splits.push_to_hub("jomoll/mimic-cxr-laterality-markers-lite")
     
-    return new_dataset
-
+    return dataset_with_splits
+ 
 def main():
     """Main function to run async processing"""
-    dataset = load_dataset(CXR_IMAMGES)
-    
-    # Show first image for verification
-    dataset["train"][0]['image'].show()
-    
+    try:
+        dataset = load_dataset(CXR_IMAGES)
+    except:
+        dataset = load_dataset(CXR_IMAGES2)    
     # Run async processing
     result = asyncio.run(generate_dataset_async(
         dataset["train"], 
-        max_items=100,
-        max_concurrent=5  # Start conservative to avoid rate limits
+        max_items=100000,
+        max_concurrent=10  # Start conservative to avoid rate limits
     ))
     
-    print(f"Generated dataset with {len(result)} annotations")
+    print(f"Generated dataset with {len(result['train'])} annotations in 'train' split.")
+    print(f"Generated dataset with {len(result['train_filtered'])} annotations in 'train_filtered' split.")
     return result
 
 if __name__ == "__main__":
