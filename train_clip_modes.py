@@ -58,6 +58,7 @@ from transformers import (
     CLIPModel, CLIPTokenizerFast, CLIPImageProcessor,
     CLIPConfig, CLIPTextConfig, CLIPVisionConfig
 )
+import torchvision.models as models
 
 # ----------------------------
 # Utils
@@ -641,6 +642,202 @@ class TinyResNetCLIP(nn.Module):
             image_embeds=image_features,
         )
 
+class ResNet18Vision(nn.Module):
+    """ResNet18 vision encoder for CLIP"""
+    def __init__(self, hidden_size: int = 768):
+        super().__init__()
+        # Load pretrained ResNet18 and remove the final classifier
+        self.backbone = models.resnet18(pretrained=True)
+        self.backbone.fc = nn.Identity()  # Remove classification head
+        
+        # ResNet18 outputs 512 features, project to desired hidden_size
+        self.projection = nn.Linear(512, hidden_size)
+        
+    def forward(self, pixel_values):
+        # pixel_values: [B, 3, H, W]
+        features = self.backbone(pixel_values)  # [B, 512]
+        return self.projection(features)  # [B, hidden_size]
+
+class DenseNet121Vision(nn.Module):
+    """DenseNet121 vision encoder for CLIP"""
+    def __init__(self, hidden_size: int = 768):
+        super().__init__()
+        # Load pretrained DenseNet121 and remove the final classifier
+        self.backbone = models.densenet121(pretrained=True)
+        self.backbone.classifier = nn.Identity()  # Remove classification head
+        
+        # DenseNet121 outputs 1024 features, project to desired hidden_size
+        self.projection = nn.Linear(1024, hidden_size)
+        
+    def forward(self, pixel_values):
+        # pixel_values: [B, 3, H, W]
+        features = self.backbone(pixel_values)  # [B, 1024]
+        return self.projection(features)  # [B, hidden_size]
+
+class VGG11Vision(nn.Module):
+    """VGG11 vision encoder for CLIP"""
+    def __init__(self, hidden_size: int = 768):
+        super().__init__()
+        # Load pretrained VGG11 and modify
+        vgg = models.vgg11(pretrained=True)
+        self.features = vgg.features  # Convolutional layers
+        self.avgpool = vgg.avgpool     # Adaptive average pooling
+        
+        # VGG11 has a 3-layer classifier, we'll replace it with our projection
+        # Original classifier input is 25088 (512 * 7 * 7)
+        self.projection = nn.Linear(25088, hidden_size)
+        
+    def forward(self, pixel_values):
+        # pixel_values: [B, 3, H, W]
+        x = self.features(pixel_values)  # [B, 512, 7, 7]
+        x = self.avgpool(x)              # [B, 512, 7, 7]
+        x = torch.flatten(x, 1)          # [B, 25088]
+        return self.projection(x)        # [B, hidden_size]
+
+class ResNet18CLIP(nn.Module):
+    """CLIP model with ResNet18 vision encoder"""
+    def __init__(self, clip_model: CLIPModel, vision_hidden_size: int = 768):
+        super().__init__()
+        self.text_model = clip_model.text_model
+        self.text_projection = clip_model.text_projection
+        self.logit_scale = clip_model.logit_scale
+        
+        # Replace vision model with ResNet18
+        self.vision_model = ResNet18Vision(vision_hidden_size)
+        # Keep same projection dim as original CLIP
+        self.visual_projection = nn.Linear(vision_hidden_size, clip_model.config.projection_dim)
+        
+        self.config = clip_model.config
+        
+    def get_text_features(self, input_ids=None, attention_mask=None, **kwargs):
+        text_outputs = self.text_model(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = text_outputs.pooler_output
+        text_features = self.text_projection(pooled_output)
+        return text_features
+        
+    def get_image_features(self, pixel_values=None, **kwargs):
+        vision_outputs = self.vision_model(pixel_values)
+        image_features = self.visual_projection(vision_outputs)
+        return image_features
+    
+    def forward(self, input_ids=None, pixel_values=None, attention_mask=None, return_loss=True, **kwargs):
+        image_features = self.get_image_features(pixel_values)
+        text_features = self.get_text_features(input_ids, attention_mask)
+        
+        # Normalize features
+        image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
+        text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
+        
+        # Compute logits
+        logit_scale = self.logit_scale.exp()
+        logits_per_text = torch.matmul(text_features, image_features.t()) * logit_scale
+        logits_per_image = logits_per_text.t()
+        
+        # Create output similar to CLIPModel
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            logits_per_image=logits_per_image,
+            logits_per_text=logits_per_text,
+            text_embeds=text_features,
+            image_embeds=image_features,
+        )
+
+class DenseNet121CLIP(nn.Module):
+    """CLIP model with DenseNet121 vision encoder"""
+    def __init__(self, clip_model: CLIPModel, vision_hidden_size: int = 768):
+        super().__init__()
+        self.text_model = clip_model.text_model
+        self.text_projection = clip_model.text_projection
+        self.logit_scale = clip_model.logit_scale
+        
+        # Replace vision model with DenseNet121
+        self.vision_model = DenseNet121Vision(vision_hidden_size)
+        # Keep same projection dim as original CLIP
+        self.visual_projection = nn.Linear(vision_hidden_size, clip_model.config.projection_dim)
+        
+        self.config = clip_model.config
+        
+    def get_text_features(self, input_ids=None, attention_mask=None, **kwargs):
+        text_outputs = self.text_model(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = text_outputs.pooler_output
+        text_features = self.text_projection(pooled_output)
+        return text_features
+        
+    def get_image_features(self, pixel_values=None, **kwargs):
+        vision_outputs = self.vision_model(pixel_values)
+        image_features = self.visual_projection(vision_outputs)
+        return image_features
+    
+    def forward(self, input_ids=None, pixel_values=None, attention_mask=None, return_loss=True, **kwargs):
+        image_features = self.get_image_features(pixel_values)
+        text_features = self.get_text_features(input_ids, attention_mask)
+        
+        # Normalize features
+        image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
+        text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
+        
+        # Compute logits
+        logit_scale = self.logit_scale.exp()
+        logits_per_text = torch.matmul(text_features, image_features.t()) * logit_scale
+        logits_per_image = logits_per_text.t()
+        
+        # Create output similar to CLIPModel
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            logits_per_image=logits_per_image,
+            logits_per_text=logits_per_text,
+            text_embeds=text_features,
+            image_embeds=image_features,
+        )
+
+class VGG11CLIP(nn.Module):
+    """CLIP model with VGG11 vision encoder"""
+    def __init__(self, clip_model: CLIPModel, vision_hidden_size: int = 768):
+        super().__init__()
+        self.text_model = clip_model.text_model
+        self.text_projection = clip_model.text_projection
+        self.logit_scale = clip_model.logit_scale
+        
+        # Replace vision model with VGG11
+        self.vision_model = VGG11Vision(vision_hidden_size)
+        # Keep same projection dim as original CLIP
+        self.visual_projection = nn.Linear(vision_hidden_size, clip_model.config.projection_dim)
+        
+        self.config = clip_model.config
+        
+    def get_text_features(self, input_ids=None, attention_mask=None, **kwargs):
+        text_outputs = self.text_model(input_ids=input_ids, attention_mask=attention_mask)
+        pooled_output = text_outputs.pooler_output
+        text_features = self.text_projection(pooled_output)
+        return text_features
+        
+    def get_image_features(self, pixel_values=None, **kwargs):
+        vision_outputs = self.vision_model(pixel_values)
+        image_features = self.visual_projection(vision_outputs)
+        return image_features
+    
+    def forward(self, input_ids=None, pixel_values=None, attention_mask=None, return_loss=True, **kwargs):
+        image_features = self.get_image_features(pixel_values)
+        text_features = self.get_text_features(input_ids, attention_mask)
+        
+        # Normalize features
+        image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
+        text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
+        
+        # Compute logits
+        logit_scale = self.logit_scale.exp()
+        logits_per_text = torch.matmul(text_features, image_features.t()) * logit_scale
+        logits_per_image = logits_per_text.t()
+        
+        # Create output similar to CLIPModel
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            logits_per_image=logits_per_image,
+            logits_per_text=logits_per_text,
+            text_embeds=text_features,
+            image_embeds=image_features,
+        )
+
 def evaluate(state: TrainState, loader, mode: str) -> Dict[str, float]:
     state.model.eval()
     tot_loss, n = 0.0, 0
@@ -717,6 +914,21 @@ def train(args):
         model = TinyResNetCLIP(base_model, vision_hidden_size=256)
         print("Initialized CLIP with tiny ResNet vision encoder")
         print_model_info(model, "TinyResNetCLIP")
+    elif args.mode == "resnet18":
+        base_model = CLIPModel.from_pretrained(args.model_name)
+        model = ResNet18CLIP(base_model, vision_hidden_size=768)
+        print("Initialized CLIP with ResNet18 vision encoder")
+        print_model_info(model, "ResNet18CLIP")
+    elif args.mode == "densenet121":
+        base_model = CLIPModel.from_pretrained(args.model_name)
+        model = DenseNet121CLIP(base_model, vision_hidden_size=768)
+        print("Initialized CLIP with DenseNet121 vision encoder")
+        print_model_info(model, "DenseNet121CLIP")
+    elif args.mode == "vgg11":
+        base_model = CLIPModel.from_pretrained(args.model_name)
+        model = VGG11CLIP(base_model, vision_hidden_size=768)
+        print("Initialized CLIP with VGG11 vision encoder")
+        print_model_info(model, "VGG11CLIP")
     elif args.from_scratch:
         # ViT-B/32-ish config, adjust if you prefer another size
         text_cfg = {
@@ -800,9 +1012,16 @@ def train(args):
         os.makedirs(save_dir, exist_ok=True)
         
         # Handle different model types
-        if args.mode in ["small_resnet", "tiny_resnet"]:
+        if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11"]:
             # Save custom model components separately
-            vision_hidden_size = 512 if args.mode == "small_resnet" else 256
+            vision_hidden_size_map = {
+                "small_resnet": 512,
+                "tiny_resnet": 256, 
+                "resnet18": 768,
+                "densenet121": 768,
+                "vgg11": 768
+            }
+            vision_hidden_size = vision_hidden_size_map[args.mode]
             torch.save({
                 'model_state_dict': model.state_dict(),
                 'vision_hidden_size': vision_hidden_size,
@@ -942,6 +1161,63 @@ def train(args):
                 'visual_projection_state_dict': best_model.visual_projection.state_dict()
             }, os.path.join(best_dir, "custom_model_info.pt"))
             
+        elif args.mode == "resnet18":
+            # Reconstruct custom model
+            base_model = CLIPModel.from_pretrained(args.model_name, weights_only=False)
+            best_model = ResNet18CLIP(base_model, vision_hidden_size=768)
+            checkpoint = torch.load(os.path.join(best_dir, "pytorch_model.bin"))
+            best_model.load_state_dict(checkpoint['model_state_dict'])
+            
+            # Save custom model info
+            torch.save({
+                'custom_model_type': 'resnet18',
+                'vision_hidden_size': 768,
+                'resnet18_state_dict': best_model.vision_model.state_dict(),
+                'visual_projection_state_dict': best_model.visual_projection.state_dict()
+            }, os.path.join(best_dir, "custom_model_info.pt"))
+            
+            best_model_for_hub = base_model
+            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
+            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
+            
+        elif args.mode == "densenet121":
+            # Reconstruct custom model
+            base_model = CLIPModel.from_pretrained(args.model_name, weights_only=False)
+            best_model = DenseNet121CLIP(base_model, vision_hidden_size=768)
+            checkpoint = torch.load(os.path.join(best_dir, "pytorch_model.bin"))
+            best_model.load_state_dict(checkpoint['model_state_dict'])
+            
+            # Save custom model info
+            torch.save({
+                'custom_model_type': 'densenet121',
+                'vision_hidden_size': 768,
+                'densenet121_state_dict': best_model.vision_model.state_dict(),
+                'visual_projection_state_dict': best_model.visual_projection.state_dict()
+            }, os.path.join(best_dir, "custom_model_info.pt"))
+            
+            best_model_for_hub = base_model
+            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
+            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
+            
+        elif args.mode == "vgg11":
+            # Reconstruct custom model
+            base_model = CLIPModel.from_pretrained(args.model_name, weights_only=False)
+            best_model = VGG11CLIP(base_model, vision_hidden_size=768)
+            checkpoint = torch.load(os.path.join(best_dir, "pytorch_model.bin"))
+            best_model.load_state_dict(checkpoint['model_state_dict'])
+            
+            # Save custom model info
+            torch.save({
+                'custom_model_type': 'vgg11',
+                'vision_hidden_size': 768,
+                'vgg11_state_dict': best_model.vision_model.state_dict(),
+                'visual_projection_state_dict': best_model.visual_projection.state_dict()
+            }, os.path.join(best_dir, "custom_model_info.pt"))
+            
+            best_model_for_hub = base_model
+            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
+            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
+            
         else:
             best_model_for_hub = CLIPModel.from_pretrained(best_dir)
             best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
@@ -960,7 +1236,7 @@ def train(args):
         best_image_processor.push_to_hub(hub_name, organization="jomoll")
         
         # Upload custom model info if it exists
-        if args.mode in ["small_resnet", "tiny_resnet"]:
+        if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11"]:
             print(f"Note: Custom {args.mode} model saved locally at {best_dir}")
             print("Custom model components saved in custom_model_info.pt")
 
@@ -991,7 +1267,7 @@ def train(args):
         print("Saved:", dump_path)
 
 def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-patch32"):
-    """Load a custom SmallResNetCLIP or TinyResNetCLIP model from saved checkpoint"""
+    """Load a custom vision encoder CLIP model from saved checkpoint"""
     import os
     
     # Check if it's a custom model
@@ -1000,7 +1276,9 @@ def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-p
         # Load custom model
         custom_info = torch.load(custom_info_path, map_location='cpu')
         
-        if custom_info['custom_model_type'] == 'small_resnet':
+        model_type = custom_info['custom_model_type']
+        
+        if model_type == 'small_resnet':
             # Reconstruct the model
             base_model = CLIPModel.from_pretrained(model_name)
             model = SmallResNetCLIP(base_model, vision_hidden_size=custom_info['vision_hidden_size'])
@@ -1011,13 +1289,40 @@ def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-p
             
             return model
         
-        elif custom_info['custom_model_type'] == 'tiny_resnet':
+        elif model_type == 'tiny_resnet':
             # Reconstruct the model
             base_model = CLIPModel.from_pretrained(model_name)
             model = TinyResNetCLIP(base_model, vision_hidden_size=custom_info['vision_hidden_size'])
             
             # Load the custom weights
             model.vision_model.load_state_dict(custom_info['tiny_resnet_state_dict'])
+            model.visual_projection.load_state_dict(custom_info['visual_projection_state_dict'])
+            
+            return model
+            
+        elif model_type == 'resnet18':
+            base_model = CLIPModel.from_pretrained(model_name)
+            model = ResNet18CLIP(base_model, vision_hidden_size=custom_info['vision_hidden_size'])
+            
+            model.vision_model.load_state_dict(custom_info['resnet18_state_dict'])
+            model.visual_projection.load_state_dict(custom_info['visual_projection_state_dict'])
+            
+            return model
+            
+        elif model_type == 'densenet121':
+            base_model = CLIPModel.from_pretrained(model_name)
+            model = DenseNet121CLIP(base_model, vision_hidden_size=custom_info['vision_hidden_size'])
+            
+            model.vision_model.load_state_dict(custom_info['densenet121_state_dict'])
+            model.visual_projection.load_state_dict(custom_info['visual_projection_state_dict'])
+            
+            return model
+            
+        elif model_type == 'vgg11':
+            base_model = CLIPModel.from_pretrained(model_name)
+            model = VGG11CLIP(base_model, vision_hidden_size=custom_info['vision_hidden_size'])
+            
+            model.vision_model.load_state_dict(custom_info['vgg11_state_dict'])
             model.visual_projection.load_state_dict(custom_info['visual_projection_state_dict'])
             
             return model
@@ -1043,7 +1348,8 @@ def print_model_info(model, model_name="Model"):
 def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", type=str, 
-                    choices=["standard","collision_free","group_positive","clip_supcon","region_preserve","small_resnet","tiny_resnet"], 
+                    choices=["standard","collision_free","group_positive","clip_supcon","region_preserve",
+                            "small_resnet","tiny_resnet","resnet18","densenet121","vgg11"], 
                     default="standard")
 
     ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
