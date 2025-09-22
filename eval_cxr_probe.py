@@ -250,39 +250,10 @@ def build_dataset_with_labels(dataset_id: str,
     # helper: resolve labels based on task
     def resolve_labels(ex):
         labels = {}
-        
-        if task in ["heart", "both"]:
-            # Heart label logic (existing)
-            if "H" in ex:
-                v = ex["H"]
-                if isinstance(v, int):
-                    labels["heart"] = v
-                else:
-                    try:
-                        if isinstance(v, str):
-                            labels["heart"] = 1 if v.lower().strip() in ["1","heart","true","yes"] else 0
-                        else:
-                            labels["heart"] = int(v)
-                    except Exception:
-                        labels["heart"] = 0
-            elif "id" in ex and isinstance(ex["id"], str) and ex["id"][-2:] in ["_0","_1"]:
-                labels["heart"] = int(ex["id"][-1])
-            elif "metadata" in ex and isinstance(ex["metadata"], dict) and "H" in ex["metadata"]:
-                labels["heart"] = int(ex["metadata"]["H"])
-            else:
-                if task == "heart":
-                    raise ValueError("Could not resolve label H for example; ensure dataset has 'H' or id ends with _0/_1.")
-                labels["heart"] = 0
+        if "marker" in ex:
+            labels["marker"] = 1 if ex["marker"] == "L" else 0
 
-        if task in ["triangle", "both"]:
-            # Triangle label logic (existing)
-            labels["triangle"] = has_triangle_named(ex)
-            
-        # Return single label for heart/triangle tasks, both labels for "both" task
-        if task == "both":
-            return labels
-        else:
-            return labels[task]
+        return labels
 
     def _transform(examples):
         # Handle both single example and batched examples
@@ -459,11 +430,11 @@ def calibrate_temperature(logits: torch.Tensor, labels: torch.Tensor, max_iter=2
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
+    ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-laterality-markers-lite-reports")
     ap.add_argument("--model_path", type=str, required=True, help="Path or HF id for the fine-tuned model")
-    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="heart")  # Added "both"
-    ap.add_argument("--split_train", type=str, default="train")
-    ap.add_argument("--split_eval", type=str, default="val")
+    ap.add_argument("--task", type=str, choices=["marker"], default="marker")  # Added "both"
+    ap.add_argument("--split_train", type=str, default="train_reports")
+    ap.add_argument("--split_eval", type=str, default="train_reports")
     ap.add_argument("--batch_size", type=int, default=512)
     ap.add_argument("--num_workers", type=int, default=6)
     ap.add_argument("--seed", type=int, default=1337)
@@ -482,8 +453,6 @@ def main():
     # Build save directory: include model basename and task
     model_base = os.path.basename(os.path.normpath(args.model_path))
     mode_save_dir = os.path.join(args.save_dir, f"{model_base}_task-{args.task}")
-    if args.mask_special and args.task == "heart":
-        mode_save_dir += "_masked"
     if "tiny" in args.model_path:
         mode_save_dir += "_tiny"
     set_seed(args.seed)
@@ -519,24 +488,18 @@ def main():
         Xev = Xev.float().to(device)
         
         # Convert labels
-        ytr_heart = ytr_dict["heart"].to(device)
-        ytr_triangle = ytr_dict["triangle"].to(device)
-        yev_heart = yev_dict["heart"].to(device)
-        yev_triangle = yev_dict["triangle"].to(device)
+        ytr_heart = ytr_dict["marker"].to(device)
+        yev_heart = yev_dict["marker"].to(device)
         
         # Train two separate probes
         print("Training heart probe...")
         probe_heart = train_probe(Xtr, ytr_heart, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
-        
-        print("Training triangle probe...")
-        probe_triangle = train_probe(Xtr, ytr_triangle, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
-        
+
         # Evaluate both probes
         results = {}
         
         for task_name, probe, ytr_task, yev_task in [
-            ("heart", probe_heart, ytr_heart, yev_heart),
-            ("triangle", probe_triangle, ytr_triangle, yev_triangle)
+            ("marker", probe_heart, ytr_heart, yev_heart),
         ]:
             print(f"\nEvaluating {task_name} probe...")
             
