@@ -19,7 +19,7 @@ What's included
 - Threshold tuning (accuracy / Youden / F1) on train or eval
 - Optional temperature scaling for calibration
 - Optional masking of the *heart* region for leakage audits
-- Works with standard CLIP and a custom SmallResNetCLIP (via train_clip_modes.py)
+- Works with standard CLIP and custom vision encoders: SmallResNet, TinyResNet, ResNet18, DenseNet121, VGG11 (via train_clip_modes.py)
 
 Usage
 -----
@@ -53,6 +53,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+import torchvision.transforms as T
 from tqdm import tqdm
 
 from datasets import load_dataset
@@ -62,10 +63,13 @@ from sklearn.metrics import accuracy_score, roc_auc_score, balanced_accuracy_sco
 
 # Optional custom vision backbone wrapper from your training script
 try:
-    from train_clip_modes import SmallResNetCLIP, TinyResNetCLIP  # noqa: F401
+    from train_clip_modes import SmallResNetCLIP, TinyResNetCLIP, ResNet18CLIP, DenseNet121CLIP, VGG11CLIP  # noqa: F401
 except Exception:
     SmallResNetCLIP = None
     TinyResNetCLIP = None
+    ResNet18CLIP = None
+    DenseNet121CLIP = None
+    VGG11CLIP = None
 
 # ----------------------------
 # Model loading
@@ -73,9 +77,49 @@ except Exception:
 
 def load_model(model_path: str, device):
     """
-    Load either a standard CLIP model (HF directory) or a SmallResNetCLIP checkpoint
-    saved by your train_clip_modes.py (we key on substring 'resnet' in the path).
+    Load either a standard CLIP model (HF directory) or a custom vision encoder CLIP checkpoint
+    saved by your train_clip_modes.py (we key on substrings in the path).
     """
+    # Check for custom model info file first
+    custom_info_path = os.path.join(model_path, "custom_model_info.pt")
+    if os.path.exists(custom_info_path):
+        print(f"Loading custom model using info from {custom_info_path}")
+        custom_info = torch.load(custom_info_path, map_location='cpu')
+        model_type = custom_info['model_type']
+        vision_hidden_size = custom_info.get('vision_hidden_size', 768)
+        
+        # Base CLIP used to construct the wrapper (for configs)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        
+        # Create the appropriate model based on type
+        if model_type == "resnet18" and ResNet18CLIP is not None:
+            print("Loading ResNet18CLIP model from", model_path)
+            model = ResNet18CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "densenet121" and DenseNet121CLIP is not None:
+            print("Loading DenseNet121CLIP model from", model_path)
+            model = DenseNet121CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "vgg11" and VGG11CLIP is not None:
+            print("Loading VGG11CLIP model from", model_path)
+            model = VGG11CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "small_resnet" and SmallResNetCLIP is not None:
+            print("Loading SmallResNetCLIP model from", model_path)
+            model = SmallResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "tiny_resnet" and TinyResNetCLIP is not None:
+            print("Loading TinyResNetCLIP model from", model_path)
+            model = TinyResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
+        else:
+            raise ValueError(f"Unknown or unavailable model type: {model_type}")
+        
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model
+    
+    # Fallback to legacy path-based detection
     if "tiny" in model_path and "resnet" in model_path and TinyResNetCLIP is not None:
         print("Loading TinyResNetCLIP model from", model_path)
         # Base CLIP used to construct the wrapper (for configs)
@@ -87,6 +131,45 @@ def load_model(model_path: str, device):
         checkpoint = torch.load(checkpoint_path, map_location='cpu')
         vision_hidden_size = checkpoint.get('vision_hidden_size', 256)
         model = TinyResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model
+    elif "resnet18" in model_path and ResNet18CLIP is not None:
+        print("Loading ResNet18CLIP model from", model_path)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 768)
+        model = ResNet18CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model
+    elif "densenet" in model_path and DenseNet121CLIP is not None:
+        print("Loading DenseNet121CLIP model from", model_path)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 768)
+        model = DenseNet121CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model
+    elif "vgg" in model_path and VGG11CLIP is not None:
+        print("Loading VGG11CLIP model from", model_path)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 768)
+        model = VGG11CLIP(base_model, vision_hidden_size=vision_hidden_size)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(device).eval()
         return model
@@ -126,7 +209,6 @@ def set_seed(seed: int):
 
 class EvalTransform:
     def __init__(self, image_size: int, mean, std):
-        import torchvision.transforms as T
         self.resize = T.Resize(image_size, interpolation=T.InterpolationMode.BICUBIC)
         self.center = T.CenterCrop(image_size)
         self.totensor = T.ToTensor()
@@ -420,8 +502,18 @@ def main():
     # Build save directory: include model basename and task
     model_base = os.path.basename(os.path.normpath(args.model_path))
     mode_save_dir = os.path.join(args.save_dir, f"{model_base}_task-{args.task}")
-    if "tiny" in args.model_path:
+    
+    # Add model type suffix to save directory
+    if "tiny" in args.model_path and "resnet" in args.model_path:
         mode_save_dir += "_tiny"
+    elif "resnet18" in args.model_path:
+        mode_save_dir += "_resnet18"
+    elif "densenet" in args.model_path:
+        mode_save_dir += "_densenet121"
+    elif "vgg" in args.model_path:
+        mode_save_dir += "_vgg11"
+    elif "resnet" in args.model_path:
+        mode_save_dir += "_small_resnet"
     set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
     amp_dtype = torch.float16 if args.amp_dtype == "fp16" else torch.bfloat16
