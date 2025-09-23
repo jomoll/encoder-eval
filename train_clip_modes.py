@@ -646,8 +646,8 @@ class ResNet18Vision(nn.Module):
     """ResNet18 vision encoder for CLIP"""
     def __init__(self, hidden_size: int = 768):
         super().__init__()
-        # Load pretrained ResNet18 and remove the final classifier
-        self.backbone = models.resnet18(pretrained=True)
+        # Load ResNet18 architecture with random initialization (no pretrained weights)
+        self.backbone = models.resnet18(pretrained=False)
         self.backbone.fc = nn.Identity()  # Remove classification head
         
         # ResNet18 outputs 512 features, project to desired hidden_size
@@ -662,8 +662,8 @@ class DenseNet121Vision(nn.Module):
     """DenseNet121 vision encoder for CLIP"""
     def __init__(self, hidden_size: int = 768):
         super().__init__()
-        # Load pretrained DenseNet121 and remove the final classifier
-        self.backbone = models.densenet121(pretrained=True)
+        # Load DenseNet121 architecture with random initialization (no pretrained weights)
+        self.backbone = models.densenet121(pretrained=False)
         self.backbone.classifier = nn.Identity()  # Remove classification head
         
         # DenseNet121 outputs 1024 features, project to desired hidden_size
@@ -678,8 +678,8 @@ class VGG11Vision(nn.Module):
     """VGG11 vision encoder for CLIP"""
     def __init__(self, hidden_size: int = 768):
         super().__init__()
-        # Load pretrained VGG11 and modify
-        vgg = models.vgg11(pretrained=True)
+        # Load VGG11 architecture with random initialization (no pretrained weights)
+        vgg = models.vgg11(pretrained=False)
         self.features = vgg.features  # Convolutional layers
         self.avgpool = vgg.avgpool     # Adaptive average pooling
         

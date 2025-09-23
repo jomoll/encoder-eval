@@ -276,7 +276,7 @@ def build_datasets(dataset_id: str,
 
         return out
 
-    ds["train_reports"] = ds["train_reports"].with_transform(_prepare_train)
+    ds["train"] = ds["train"].with_transform(_prepare_train)
     if "val" in ds:
         ds["val"] = ds["val"].with_transform(_prepare_eval)
     if "test" in ds:
@@ -787,7 +787,7 @@ def build_loaders(ds, tokenizer, image_processor, args, device):
     
     
     train_loader = DataLoader(
-        ds["train_reports"], batch_size=args.batch_size, shuffle=True,
+        ds["train"], batch_size=args.batch_size, shuffle=True,
         num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate, drop_last=True
     )
     # Val loader
@@ -969,6 +969,8 @@ def train(args):
 
     global_step = 0
     for epoch in range(args.epochs):
+        if epoch == 0:
+            save_checkpoint(epoch-1, is_periodic=True)
         model.train()
         if image_proj is not None:
             image_proj.train()
@@ -1256,7 +1258,7 @@ def parse_args():
                             "small_resnet","tiny_resnet","resnet18","densenet121","vgg11"], 
                     default="standard")
 
-    ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-laterality-markers-lite-reports")
+    ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-reports")
     ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
