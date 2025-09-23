@@ -566,19 +566,7 @@ def main():
     mode_save_dir = os.path.join(args.save_dir, f"{model_base}_task-{args.task}")
     if args.mask_special and args.task == "heart":
         mode_save_dir += "_masked"
-    """
-    # Add model type suffix to save directory
-    if "tiny" in args.model_path and "resnet" in args.model_path:
-        mode_save_dir += "_tiny"
-    elif "resnet18" in args.model_path:
-        mode_save_dir += "_resnet18"
-    elif "densenet" in args.model_path:
-        mode_save_dir += "_densenet121"
-    elif "vgg" in args.model_path:
-        mode_save_dir += "_vgg11"
-    elif "resnet" in args.model_path:
-        mode_save_dir += "_small_resnet"
-    """
+    
     set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() and not args.cpu else "cpu")
     amp_dtype = torch.float16 if args.amp_dtype == "fp16" else torch.bfloat16
