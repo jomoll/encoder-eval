@@ -318,6 +318,30 @@ def build_dataset_with_labels(dataset_id: str,
                               task: str = "marker",
                               mask_special: bool = False):
     ds = load_dataset(dataset_id, split=split)
+    
+    # Filter out invalid samples
+    def is_valid_sample(example):
+        # Invalid if marker_present is False or pleural_effusion_confidence is 0
+        marker_present = example.get("marker_present", True)  # default True if missing
+        pleural_effusion_confidence = example.get("pleural_effusion_confidence", 1)  # default 1 if missing
+        
+        return marker_present != False and pleural_effusion_confidence != 0
+    
+    # Count samples before filtering
+    original_count = len(ds)
+    
+    # Apply filter
+    ds = ds.filter(is_valid_sample)
+    
+    # Count samples after filtering
+    filtered_count = len(ds)
+    invalid_count = original_count - filtered_count
+    
+    print(f"Dataset filtering for {split}:")
+    print(f"  Original samples: {original_count}")
+    print(f"  Valid samples: {filtered_count}")
+    print(f"  Invalid samples discarded: {invalid_count}")
+    
     image_size = image_processor.size["shortest_edge"]
     tf = EvalTransform(image_size, image_processor.image_mean, image_processor.image_std)
 
@@ -479,7 +503,7 @@ def calibrate_temperature(logits: torch.Tensor, labels: torch.Tensor, max_iter=2
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-laterality-markers-lite-reports")
+    ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-combined-annotations")
     ap.add_argument("--model_path", type=str, required=True, help="Path or HF id for the fine-tuned model")
     ap.add_argument("--task", type=str, choices=["marker"], default="marker")
     ap.add_argument("--split_train", type=str, default="train_reports")
