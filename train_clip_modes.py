@@ -231,13 +231,50 @@ class CollisionFreeBatchSampler(BatchSampler):
 # Dataset wrapper
 # ----------------------------
 
+def apply_caption_dropout(captions: List[str], tokenizer: CLIPTokenizerFast, 
+                         dropout_prob: float, strategy: str = "empty_string") -> List[str]:
+    """
+    Apply caption dropout: with probability `dropout_prob`, replace caption with null token.
+    
+    Args:
+        captions: List of caption strings
+        tokenizer: CLIP tokenizer 
+        dropout_prob: Probability of dropping each caption
+        strategy: How to replace dropped captions ("empty_string", "cls_token", "mask_token")
+    
+    Returns:
+        List of captions with some potentially replaced by null tokens
+    """
+    import random
+    
+    dropped_captions = []
+    for caption in captions:
+        if random.random() < dropout_prob:
+            # Replace with null token based on strategy
+            if strategy == "empty_string":
+                dropped_captions.append("")
+            elif strategy == "cls_token":
+                # Use the start-of-sequence token
+                dropped_captions.append(tokenizer.bos_token or "[CLS]")
+            elif strategy == "mask_token":
+                # Use mask token if available, otherwise a generic mask
+                dropped_captions.append(tokenizer.mask_token or "[MASK]")
+            else:
+                dropped_captions.append("")
+        else:
+            dropped_captions.append(caption)
+    
+    return dropped_captions
+
 def build_datasets(dataset_id: str,
                    tokenizer: CLIPTokenizerFast,
                    image_processor: CLIPImageProcessor,
                    image_size: int,
                    max_len: int,
                    mode: str,
-                   num_proc: int = 1):
+                   num_proc: int = 1,
+                   caption_dropout_prob: float = 0.0,
+                   null_token_strategy: str = "empty_string"):
     ds = load_dataset(dataset_id)
 
     mean = image_processor.image_mean
@@ -285,6 +322,11 @@ def build_datasets(dataset_id: str,
         is_batched = isinstance(examples["caption"], list)
         captions = examples["caption"] if is_batched else [examples["caption"]]
         images = examples["image"] if is_batched else [examples["image"]]
+        
+        # Apply caption dropout for training if mode is caption_dropout
+        if mode == "caption_dropout":
+            captions = apply_caption_dropout(captions, tokenizer, caption_dropout_prob, null_token_strategy)
+        
         # pass through extra metadata for region-preserving
         specials = []
         if "special_object" in examples:
@@ -311,8 +353,10 @@ def build_datasets(dataset_id: str,
                 out["pixel_values"].append(norm(tens))
             else:
                 out["pixel_values"].append(train_tf(img))
-            # caption_id
+            # caption_id - use original caption for ID, not the dropped one
+            orig_cap = examples["caption"][i] if is_batched else examples["caption"]
             ex_single = {k: (v[i] if is_batched else v) for k, v in examples.items()}
+            ex_single["caption"] = orig_cap  # ensure we use original caption for ID
             cid = get_caption_id(ex_single)
             out["caption_id"].append(cid)
         return out
@@ -322,6 +366,7 @@ def build_datasets(dataset_id: str,
         is_batched = isinstance(examples["caption"], list)
         captions = examples["caption"] if is_batched else [examples["caption"]]
         images = examples["image"] if is_batched else [examples["image"]]
+        # No caption dropout during evaluation
         for i, (cap, img) in enumerate(zip(captions, images)):
             tok = tokenizer(cap, padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
             out["input_ids"].append(torch.tensor(tok["input_ids"], dtype=torch.long))
@@ -900,7 +945,8 @@ def train(args):
     image_processor = CLIPImageProcessor.from_pretrained(args.model_name)
     image_size = image_processor.size["shortest_edge"]
 
-    ds = build_datasets(args.dataset_id, tokenizer, image_processor, image_size=image_size, max_len=args.max_len, mode=args.mode, num_proc=args.num_workers)
+    ds = build_datasets(args.dataset_id, tokenizer, image_processor, image_size=image_size, max_len=args.max_len, mode=args.mode, num_proc=args.num_workers,
+                       caption_dropout_prob=args.caption_dropout_prob, null_token_strategy=args.null_token_strategy)
     train_loader, val_loader = build_loaders(ds, tokenizer, image_processor, args, device)
 
     # --- Model construction ---
@@ -919,6 +965,12 @@ def train(args):
         model = ResNet18CLIP(base_model, vision_hidden_size=768)
         print("Initialized CLIP with ResNet18 vision encoder")
         print_model_info(model, "ResNet18CLIP")
+    elif args.mode == "caption_dropout":
+        # Use ResNet18 as the default vision encoder for caption dropout experiments
+        base_model = CLIPModel.from_pretrained(args.model_name)
+        model = ResNet18CLIP(base_model, vision_hidden_size=768)
+        print("Initialized CLIP with ResNet18 vision encoder for caption dropout")
+        print_model_info(model, "ResNet18CLIP (caption dropout)")
     elif args.mode == "densenet121":
         base_model = CLIPModel.from_pretrained(args.model_name)
         model = DenseNet121CLIP(base_model, vision_hidden_size=768)
@@ -962,6 +1014,10 @@ def train(args):
         model = CLIPModel.from_pretrained(args.model_name)
         print(f"Loaded pretrained CLIP model: {args.model_name}")
         print_model_info(model, "CLIP (pretrained)")
+        
+    # Print caption dropout info if applicable
+    if args.mode == "caption_dropout":
+        print(f"Caption dropout enabled: p={args.caption_dropout_prob}, strategy={args.null_token_strategy}")
 
     model.to(device)
 
@@ -1012,14 +1068,15 @@ def train(args):
         os.makedirs(save_dir, exist_ok=True)
         
         # Handle different model types
-        if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11"]:
+        if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11", "caption_dropout"]:
             # Save custom model components separately
             vision_hidden_size_map = {
                 "small_resnet": 512,
                 "tiny_resnet": 256, 
                 "resnet18": 768,
                 "densenet121": 768,
-                "vgg11": 768
+                "vgg11": 768,
+                "caption_dropout": 768  # ResNet18 hidden size
             }
             vision_hidden_size = vision_hidden_size_map[args.mode]
             torch.save({
@@ -1221,6 +1278,25 @@ def train(args):
             best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
             best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
             
+        elif args.mode == "caption_dropout":
+            # Reconstruct ResNet18 model for caption dropout
+            base_model = CLIPModel.from_pretrained(args.model_name, weights_only=False)
+            best_model = ResNet18CLIP(base_model, vision_hidden_size=768)
+            checkpoint = torch.load(os.path.join(best_dir, "pytorch_model.bin"))
+            best_model.load_state_dict(checkpoint['model_state_dict'])
+            
+            # Save custom model info
+            torch.save({
+                'custom_model_type': 'caption_dropout_resnet18',
+                'vision_hidden_size': 768,
+                'resnet18_state_dict': best_model.vision_model.state_dict(),
+                'visual_projection_state_dict': best_model.visual_projection.state_dict()
+            }, os.path.join(best_dir, "custom_model_info.pt"))
+            
+            best_model_for_hub = base_model
+            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
+            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
+            
         else:
             best_model_for_hub = CLIPModel.from_pretrained(best_dir)
             best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
@@ -1239,7 +1315,7 @@ def train(args):
         best_image_processor.push_to_hub(hub_name, organization="jomoll")
         
         # Upload custom model info if it exists
-        if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11"]:
+        if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11", "caption_dropout"]:
             print(f"Note: Custom {args.mode} model saved locally at {best_dir}")
             print("Custom model components saved in custom_model_info.pt")
 
@@ -1352,7 +1428,7 @@ def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", type=str, 
                     choices=["standard","collision_free","group_positive","clip_supcon","region_preserve",
-                            "small_resnet","tiny_resnet","resnet18","densenet121","vgg11"], 
+                            "small_resnet","tiny_resnet","resnet18","densenet121","vgg11","caption_dropout"], 
                     default="standard")
 
     ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
@@ -1377,6 +1453,12 @@ def parse_args():
     ap.add_argument("--lambda_supcon", type=float, default=0.1, help="weight of image-image SupCon loss")
     ap.add_argument("--supcon_tau", type=float, default=0.1, help="temperature for SupCon")
     ap.add_argument("--supcon_dim", type=int, default=128, help="projection dim for SupCon head")
+
+    # Caption dropout options (mode=caption_dropout)
+    ap.add_argument("--caption_dropout_prob", type=float, default=0.1, 
+                    help="probability q of replacing caption with empty/null token (for caption_dropout mode)")
+    ap.add_argument("--null_token_strategy", type=str, choices=["empty_string", "cls_token", "mask_token"], 
+                    default="empty_string", help="strategy for null tokens in caption dropout")
 
     ap.add_argument("--dump_embeddings_for_val", action="store_true")
     
