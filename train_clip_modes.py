@@ -1430,8 +1430,8 @@ def parse_args():
                             "small_resnet","tiny_resnet","resnet18","densenet121","vgg11","caption_dropout"], 
                     default="standard")
 
-    ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
-    ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
+    ap.add_argument("--dataset_id", type=str, default="jomoll/silent-heart-dataset")
+    ap.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
     ap.add_argument("--epochs", type=int, default=100)
