@@ -507,7 +507,11 @@ def run_probes(Xtr, ytr, Xev, yev, probes: List[str], device="cpu",
 # Model loading
 # ----------------------------
 
-def load_model_and_processor(model_path: str, device):
+def load_model(model_path: str, device):
+    """
+    Load either a standard CLIP model (HF directory) or a custom vision encoder CLIP checkpoint
+    saved by your train_clip_modes.py (we key on substrings in the path).
+    """
     # Check for custom model info file first
     custom_info_path = os.path.join(model_path, "custom_model_info.pt")
     if os.path.exists(custom_info_path):
@@ -519,6 +523,7 @@ def load_model_and_processor(model_path: str, device):
         # Base CLIP used to construct the wrapper (for configs)
         base_model_name = "models/clip-vit-base-patch32"
         base_model = CLIPModel.from_pretrained(base_model_name)
+        processor = CLIPImageProcessor.from_pretrained(base_model_name)
         checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
         if not os.path.exists(checkpoint_path):
             raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
@@ -545,7 +550,88 @@ def load_model_and_processor(model_path: str, device):
         
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(device).eval()
-        return model
+        return model, processor
+    
+    # Fallback to legacy path-based detection
+    if "tiny" in model_path and "resnet" in model_path and TinyResNetCLIP is not None:
+        print("Loading TinyResNetCLIP model from", model_path)
+        # Base CLIP used to construct the wrapper (for configs)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 256)
+        model = TinyResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
+        processor = CLIPImageProcessor.from_pretrained(base_model_name)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model, processor
+    elif "resnet18" in model_path and ResNet18CLIP is not None:
+        print("Loading ResNet18CLIP model from", model_path)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 768)
+        model = ResNet18CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        processor = CLIPImageProcessor.from_pretrained(base_model_name)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model, processor
+    elif "densenet" in model_path and DenseNet121CLIP is not None:
+        print("Loading DenseNet121CLIP model from", model_path)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 768)
+        model = DenseNet121CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        processor = CLIPImageProcessor.from_pretrained(base_model_name)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model, processor
+    elif "vgg" in model_path and VGG11CLIP is not None:
+        print("Loading VGG11CLIP model from", model_path)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 768)
+        model = VGG11CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        processor = CLIPImageProcessor.from_pretrained(base_model_name)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model, processor
+    elif "resnet" in model_path and SmallResNetCLIP is not None:
+        print("Loading SmallResNetCLIP model from", model_path)
+        # Base CLIP used to construct the wrapper (for configs)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        vision_hidden_size = checkpoint.get('vision_hidden_size', 512)
+        model = SmallResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
+        processor = CLIPImageProcessor.from_pretrained(base_model_name)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model, processor
+    else:
+        print("Loading CLIP model from", model_path)
+        model = CLIPModel.from_pretrained(model_path)
+        processor = CLIPImageProcessor.from_pretrained(model_path)
+        model.to(device).eval()
+        return model, processor
+
 # ----------------------------
 # CLI
 # ----------------------------
