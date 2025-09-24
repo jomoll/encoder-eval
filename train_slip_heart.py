@@ -372,7 +372,7 @@ def train(args):
 
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
+    ap.add_argument("--dataset_id", type=str, default="jomoll/silent-heart-dataset")
     ap.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_slip")
 
