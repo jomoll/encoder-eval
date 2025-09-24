@@ -508,29 +508,44 @@ def run_probes(Xtr, ytr, Xev, yev, probes: List[str], device="cpu",
 # ----------------------------
 
 def load_model_and_processor(model_path: str, device):
-    try:
-        model = CLIPModel.from_pretrained(model_path)
-        processor = CLIPImageProcessor.from_pretrained(model_path)
-        print(f"Loaded HF CLIP model from {model_path}")
-        return model.to(device).eval(), processor
-    except Exception:
-        # custom checkpoint path from your trainer
-        if ResNet18CLIP is None:
-            raise RuntimeError("Failed to load HF model; custom wrappers not available.")
-        # heuristic: try to load base CLIP + wrap; we need to know type — assume ResNet18CLIP as common
-        base = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-        # try different wrappers based on files present
-        ckpt = os.path.join(model_path, "pytorch_model.bin")
-        if not os.path.exists(ckpt):
-            raise FileNotFoundError(f"No checkpoint at {ckpt}")
-        sd = torch.load(ckpt, map_location="cpu")
-        # pick most likely wrapper
-        model = ResNet18CLIP(base, vision_hidden_size=sd.get('vision_hidden_size', 768))
-        model.load_state_dict(sd['model_state_dict'])
-        processor = CLIPImageProcessor.from_pretrained("openai/clip-vit-base-patch32")
-        print(f"Loaded custom ResNet wrapper from {model_path}")
-        return model.to(device).eval(), processor
-
+    # Check for custom model info file first
+    custom_info_path = os.path.join(model_path, "custom_model_info.pt")
+    if os.path.exists(custom_info_path):
+        print(f"Loading custom model using info from {custom_info_path}")
+        custom_info = torch.load(custom_info_path, map_location='cpu')
+        model_type = custom_info['model_type']
+        vision_hidden_size = custom_info.get('vision_hidden_size', 768)
+        
+        # Base CLIP used to construct the wrapper (for configs)
+        base_model_name = "models/clip-vit-base-patch32"
+        base_model = CLIPModel.from_pretrained(base_model_name)
+        checkpoint_path = os.path.join(model_path, "pytorch_model.bin")
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint not found at {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path, map_location='cpu')
+        
+        # Create the appropriate model based on type
+        if model_type == "resnet18" and ResNet18CLIP is not None:
+            print("Loading ResNet18CLIP model from", model_path)
+            model = ResNet18CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "densenet121" and DenseNet121CLIP is not None:
+            print("Loading DenseNet121CLIP model from", model_path)
+            model = DenseNet121CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "vgg11" and VGG11CLIP is not None:
+            print("Loading VGG11CLIP model from", model_path)
+            model = VGG11CLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "small_resnet" and SmallResNetCLIP is not None:
+            print("Loading SmallResNetCLIP model from", model_path)
+            model = SmallResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
+        elif model_type == "tiny_resnet" and TinyResNetCLIP is not None:
+            print("Loading TinyResNetCLIP model from", model_path)
+            model = TinyResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
+        else:
+            raise ValueError(f"Unknown or unavailable model type: {model_type}")
+        
+        model.load_state_dict(checkpoint['model_state_dict'])
+        model.to(device).eval()
+        return model
 # ----------------------------
 # CLI
 # ----------------------------
