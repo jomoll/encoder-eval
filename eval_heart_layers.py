@@ -25,14 +25,14 @@ Probes
 
 Task labels
 -----------
---task ∈ {heart, triangle}. Heart uses 'H' or id suffix; triangle scans named_objects.
+--task ∈ {heart, triangle, both}. Heart uses 'H' or id suffix; triangle scans named_objects; both runs heart and triangle separately.
 
 Usage (example)
 ---------------
 python layerwise_accessibility.py \
   --dataset_id jomoll/silent-heart-dataset-p00 \
   --model_path ./ckpt_slip_vitb32/best \
-  --task heart \
+  --task both \
   --backbone auto \
   --splits train val \
   --vit_layers 2 4 6 8 10 12 \
@@ -160,6 +160,27 @@ def resolve_label(ex: Dict[str, Any], task: str) -> int:
     else:
         raise ValueError(f"Unknown task {task}")
 
+def resolve_both_labels(ex: Dict[str, Any]) -> Dict[str, int]:
+    """Resolve both heart and triangle labels for a single example."""
+    labels = {}
+    
+    # Heart label
+    if "H" in ex:
+        v = ex["H"]; 
+        try: labels["heart"] = int(v) if isinstance(v, int) else (1 if str(v).lower() in ["1","heart","true","yes"] else 0)
+        except: labels["heart"] = 0
+    elif "id" in ex and isinstance(ex["id"], str) and ex["id"][-2:] in ["_0","_1"]:
+        labels["heart"] = int(ex["id"][-1])
+    elif "metadata" in ex and isinstance(ex["metadata"], dict) and "H" in ex["metadata"]:
+        labels["heart"] = int(ex["metadata"]["H"])
+    else:
+        labels["heart"] = 0  # Default for both task when heart label missing
+    
+    # Triangle label
+    labels["triangle"] = has_triangle_named(ex)
+    
+    return labels
+
 # ----------------------------
 # Region mapping
 # ----------------------------
@@ -188,15 +209,28 @@ def build_dataset(dataset_id: str, split: str, processor: CLIPImageProcessor):
     tf = EvalTransform(image_size, processor.image_mean, processor.image_std)
     def _t(examples):
         imgs = examples["image"] if isinstance(examples["image"], list) else [examples["image"]]
-        out = {"pixel_values": [], "label": [], "id": [], "HR": [], "special_object": []}
         is_batched = isinstance(examples["image"], list)
-        for i, img in enumerate(imgs):
-            ex = {k:(examples[k][i] if is_batched else examples[k]) for k in examples.keys()}
-            out["pixel_values"].append(tf(img))
-            out["label"].append(resolve_label(ex, build_dataset.task))
-            out["id"].append(ex.get("id",""))
-            out["HR"].append(ex.get("HR", 448))
-            out["special_object"].append(ex.get("special_object", {}))
+        
+        if build_dataset.task == "both":
+            out = {"pixel_values": [], "heart_label": [], "triangle_label": [], "id": [], "HR": [], "special_object": []}
+            for i, img in enumerate(imgs):
+                ex = {k:(examples[k][i] if is_batched else examples[k]) for k in examples.keys()}
+                out["pixel_values"].append(tf(img))
+                labels = resolve_both_labels(ex)
+                out["heart_label"].append(labels["heart"])
+                out["triangle_label"].append(labels["triangle"])
+                out["id"].append(ex.get("id",""))
+                out["HR"].append(ex.get("HR", 448))
+                out["special_object"].append(ex.get("special_object", {}))
+        else:
+            out = {"pixel_values": [], "label": [], "id": [], "HR": [], "special_object": []}
+            for i, img in enumerate(imgs):
+                ex = {k:(examples[k][i] if is_batched else examples[k]) for k in examples.keys()}
+                out["pixel_values"].append(tf(img))
+                out["label"].append(resolve_label(ex, build_dataset.task))
+                out["id"].append(ex.get("id",""))
+                out["HR"].append(ex.get("HR", 448))
+                out["special_object"].append(ex.get("special_object", {}))
         return out
     build_dataset.task = None  # set dynamically
     return ds, tf, _t
@@ -398,33 +432,69 @@ def collect_features(model, processor, dataset_id, split, task, spec: FeatureSpe
     def _prep(examples):
         is_b = isinstance(examples["image"], list)
         imgs = examples["image"] if is_b else [examples["image"]]
-        out={"pixel_values":[], "label":[], "id":[], "HR":[], "special_object":[]}
-        for i, img in enumerate(imgs):
-            ex = {k:(examples[k][i] if is_b else examples[k]) for k in examples.keys()}
-            out["pixel_values"].append(tf(img))
-            out["label"].append(resolve_label(ex, task))
-            out["id"].append(ex.get("id",""))
-            out["HR"].append(ex.get("HR",448))
-            out["special_object"].append(ex.get("special_object", {}))
+        
+        if task == "both":
+            out={"pixel_values":[], "heart_label":[], "triangle_label":[], "id":[], "HR":[], "special_object":[]}
+            for i, img in enumerate(imgs):
+                ex = {k:(examples[k][i] if is_b else examples[k]) for k in examples.keys()}
+                out["pixel_values"].append(tf(img))
+                labels = resolve_both_labels(ex)
+                out["heart_label"].append(labels["heart"])
+                out["triangle_label"].append(labels["triangle"])
+                out["id"].append(ex.get("id",""))
+                out["HR"].append(ex.get("HR",448))
+                out["special_object"].append(ex.get("special_object", {}))
+        else:
+            out={"pixel_values":[], "label":[], "id":[], "HR":[], "special_object":[]}
+            for i, img in enumerate(imgs):
+                ex = {k:(examples[k][i] if is_b else examples[k]) for k in examples.keys()}
+                out["pixel_values"].append(tf(img))
+                out["label"].append(resolve_label(ex, task))
+                out["id"].append(ex.get("id",""))
+                out["HR"].append(ex.get("HR",448))
+                out["special_object"].append(ex.get("special_object", {}))
         return out
 
     ds = ds.with_transform(_prep)
+    
+    def _collate(batch):
+        if task == "both":
+            return {
+                "pixel_values": torch.stack([x["pixel_values"] for x in batch], dim=0),
+                "heart_label": torch.tensor([x["heart_label"] for x in batch], dtype=torch.long),
+                "triangle_label": torch.tensor([x["triangle_label"] for x in batch], dtype=torch.long),
+                "ex": batch
+            }
+        else:
+            return {
+                "pixel_values": torch.stack([x["pixel_values"] for x in batch], dim=0),
+                "label": torch.tensor([x["label"] for x in batch], dtype=torch.long),
+                "ex": batch
+            }
+    
     dl = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers,
-                    pin_memory=(device.type=="cuda"), collate_fn=lambda b: {
-                        "pixel_values": torch.stack([x["pixel_values"] for x in b], dim=0),
-                        "label": torch.tensor([x["label"] for x in b], dtype=torch.long),
-                        "ex": b
-                    })
+                    pin_memory=(device.type=="cuda"), collate_fn=_collate)
     features = {}  # (layer_key, readout) -> list of tensors
-    labels = []
+    
+    if task == "both":
+        heart_labels = []
+        triangle_labels = []
+    else:
+        labels = []
+        
     model.eval()
     autocast = torch.cuda.amp.autocast if device.type=="cuda" else torch.cpu.amp.autocast
 
     with torch.no_grad():
         for batch in tqdm(dl, desc=f"Collect {split}"):
             pv = batch["pixel_values"].to(device, non_blocking=True)
-            y  = batch["label"]
             ex_list = batch["ex"]  # list of dicts for region mapping
+
+            if task == "both":
+                y_heart = batch["heart_label"]
+                y_triangle = batch["triangle_label"]
+            else:
+                y = batch["label"]
 
             with autocast(dtype=amp_dtype):
                 if spec.kind == "vit":
@@ -453,11 +523,21 @@ def collect_features(model, processor, dataset_id, split, task, spec: FeatureSpe
                             key = (stg, rd)
                             features.setdefault(key, []).append(feat.cpu())
 
-            labels.append(y)
+            if task == "both":
+                heart_labels.append(y_heart)
+                triangle_labels.append(y_triangle)
+            else:
+                labels.append(y)
 
     feats_np = {k: torch.cat(v, dim=0).numpy() for k, v in features.items()}
-    y_all = torch.cat(labels, dim=0).numpy()
-    return feats_np, y_all
+    
+    if task == "both":
+        y_heart_all = torch.cat(heart_labels, dim=0).numpy()
+        y_triangle_all = torch.cat(triangle_labels, dim=0).numpy()
+        return feats_np, {"heart": y_heart_all, "triangle": y_triangle_all}
+    else:
+        y_all = torch.cat(labels, dim=0).numpy()
+        return feats_np, y_all
 
 # ----------------------------
 # Evaluation
@@ -640,7 +720,7 @@ def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset_id", type=str, required=True)
     ap.add_argument("--model_path", type=str, required=True)
-    ap.add_argument("--task", type=str, choices=["heart","triangle"], default="heart")
+    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="heart")
     ap.add_argument("--splits", nargs=2, metavar=("TRAIN","EVAL"), default=["train","val"])
 
     ap.add_argument("--backbone", type=str, choices=["auto","vit","resnet"], default="auto")
@@ -707,32 +787,64 @@ def main():
     out_dir = os.path.join(args.save_dir, f"{model_base}_{bk}_{args.task}")
     ensure_dir(out_dir)
 
-    # Train probes per (layer, readout)
-    results = {"meta":{
-        "dataset": args.dataset_id, "model_path": args.model_path, "task": args.task,
-        "backbone": bk, "train_split": train_split, "eval_split": eval_split,
-        "probes": args.probes, "seed": args.seed
-    }, "scores": {}}
+    # Handle both task vs single task
+    if args.task == "both":
+        # Train probes per (layer, readout) for both tasks
+        results = {
+            "meta": {
+                "dataset": args.dataset_id, "model_path": args.model_path, "task": args.task,
+                "backbone": bk, "train_split": train_split, "eval_split": eval_split,
+                "probes": args.probes, "seed": args.seed
+            }, 
+            "scores": {"heart": {}, "triangle": {}}
+        }
 
-    for key in sorted(feats_tr.keys()):
-        Xtr = feats_tr[key]; Xev = feats_ev[key]
-        entry={}
-        r = run_probes(Xtr, y_tr, Xev, y_ev, probes=args.probes, device=device,
-                       epochs=args.epochs, lr=args.lr, wd=args.weight_decay,
-                       use_rff=args.use_rff, rff_dim=args.rff_dim, rff_gamma=args.rff_gamma, seed=args.seed)
-        entry.update(r)
-        results["scores"][f"{key[0]}::{key[1]}"] = entry
-        print(f"[{key[0]} | {key[1]}] -> {entry}")
+        for key in sorted(feats_tr.keys()):
+            Xtr = feats_tr[key]; Xev = feats_ev[key]
+            
+            # Heart probes
+            heart_results = run_probes(Xtr, y_tr["heart"], Xev, y_ev["heart"], probes=args.probes, device=device,
+                                     epochs=args.epochs, lr=args.lr, wd=args.weight_decay,
+                                     use_rff=args.use_rff, rff_dim=args.rff_dim, rff_gamma=args.rff_gamma, seed=args.seed)
+            results["scores"]["heart"][f"{key[0]}::{key[1]}"] = heart_results
+            print(f"[HEART {key[0]} | {key[1]}] -> {heart_results}")
+            
+            # Triangle probes
+            triangle_results = run_probes(Xtr, y_tr["triangle"], Xev, y_ev["triangle"], probes=args.probes, device=device,
+                                        epochs=args.epochs, lr=args.lr, wd=args.weight_decay,
+                                        use_rff=args.use_rff, rff_dim=args.rff_dim, rff_gamma=args.rff_gamma, seed=args.seed)
+            results["scores"]["triangle"][f"{key[0]}::{key[1]}"] = triangle_results
+            print(f"[TRIANGLE {key[0]} | {key[1]}] -> {triangle_results}")
 
-    # Save JSON
-    with open(os.path.join(out_dir, "layerwise_results.json"), "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"\nSaved results to {out_dir}/layerwise_results.json")
+        # Save JSON
+        with open(os.path.join(out_dir, "layerwise_results.json"), "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"\nSaved results to {out_dir}/layerwise_results.json")
 
-    # Optionally save features (careful with size)
-    np.savez_compressed(os.path.join(out_dir, "features_train.npz"), **{f"{k[0]}::{k[1]}": v for k,v in feats_tr.items()}, y=y_tr)
-    np.savez_compressed(os.path.join(out_dir, "features_eval.npz"),  **{f"{k[0]}::{k[1]}": v for k,v in feats_ev.items()}, y=y_ev)
-    print(f"Saved compressed features to {out_dir}/features_*.npz")
+        
+    else:
+        # Original single-task logic
+        results = {"meta":{
+            "dataset": args.dataset_id, "model_path": args.model_path, "task": args.task,
+            "backbone": bk, "train_split": train_split, "eval_split": eval_split,
+            "probes": args.probes, "seed": args.seed
+        }, "scores": {}}
+
+        for key in sorted(feats_tr.keys()):
+            Xtr = feats_tr[key]; Xev = feats_ev[key]
+            entry={}
+            r = run_probes(Xtr, y_tr, Xev, y_ev, probes=args.probes, device=device,
+                           epochs=args.epochs, lr=args.lr, wd=args.weight_decay,
+                           use_rff=args.use_rff, rff_dim=args.rff_dim, rff_gamma=args.rff_gamma, seed=args.seed)
+            entry.update(r)
+            results["scores"][f"{key[0]}::{key[1]}"] = entry
+            print(f"[{key[0]} | {key[1]}] -> {entry}")
+
+        # Save JSON
+        with open(os.path.join(out_dir, "layerwise_results.json"), "w") as f:
+            json.dump(results, f, indent=2)
+        print(f"\nSaved results to {out_dir}/layerwise_results.json")
+
 
 if __name__ == "__main__":
     main()
