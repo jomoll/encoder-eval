@@ -720,7 +720,7 @@ def parse_args():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset_id", type=str, required=True)
     ap.add_argument("--model_path", type=str, required=True)
-    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="heart")
+    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="both")
     ap.add_argument("--splits", nargs=2, metavar=("TRAIN","EVAL"), default=["train","val"])
 
     ap.add_argument("--backbone", type=str, choices=["auto","vit","resnet"], default="auto")
