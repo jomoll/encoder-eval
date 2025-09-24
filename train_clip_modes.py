@@ -966,11 +966,10 @@ def train(args):
         print("Initialized CLIP with ResNet18 vision encoder")
         print_model_info(model, "ResNet18CLIP")
     elif args.mode == "caption_dropout":
-        # Use ResNet18 as the default vision encoder for caption dropout experiments
         base_model = CLIPModel.from_pretrained(args.model_name)
-        model = ResNet18CLIP(base_model, vision_hidden_size=768)
-        print("Initialized CLIP with ResNet18 vision encoder for caption dropout")
-        print_model_info(model, "ResNet18CLIP (caption dropout)")
+        model = DenseNet121CLIP(base_model, vision_hidden_size=768)
+        print("Initialized CLIP with DenseNet121 vision encoder")
+        print_model_info(model, "DenseNet121CLIP")
     elif args.mode == "densenet121":
         base_model = CLIPModel.from_pretrained(args.model_name)
         model = DenseNet121CLIP(base_model, vision_hidden_size=768)
@@ -1435,7 +1434,7 @@ def parse_args():
     ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
-    ap.add_argument("--epochs", type=int, default=10)
+    ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--batch_size", type=int, default=256)
     ap.add_argument("--eval_batch_size", type=int, default=None)
     ap.add_argument("--lr", type=float, default=5e-5)
