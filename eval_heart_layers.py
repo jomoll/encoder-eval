@@ -507,7 +507,7 @@ def run_probes(Xtr, ytr, Xev, yev, probes: List[str], device="cpu",
 # Model loading
 # ----------------------------
 
-def load_model(model_path: str, device):
+def load_model_and_processor(model_path: str, device):
     """
     Load either a standard CLIP model (HF directory) or a custom vision encoder CLIP checkpoint
     saved by your train_clip_modes.py (we key on substrings in the path).
