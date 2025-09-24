@@ -182,28 +182,23 @@ def clip_itc_loss(logits_per_image: torch.Tensor, logits_per_text: torch.Tensor)
     lt = F.cross_entropy(logits_per_text, labels)
     return 0.5 * (li + lt)
 
-def nt_xent(z1: torch.Tensor, z2: torch.Tensor, temperature: float = 0.1) -> torch.Tensor:
-    """
-    NT-Xent (SimCLR) over two views. z1,z2 expected L2-normalized: [B,D].
-    Positives are (i from z1, i from z2). All other pairs are negatives.
-    """
+def nt_xent(z1, z2, temperature=0.1):
     z1 = F.normalize(z1, dim=1)
     z2 = F.normalize(z2, dim=1)
-
     b = z1.size(0)
-    z = torch.cat([z1, z2], dim=0)                        # [2B, D]
-    sim = torch.matmul(z, z.t()) / temperature            # [2B, 2B]
+    z = torch.cat([z1, z2], dim=0)                 # [2B, D]
+    sim = torch.matmul(z, z.t()) / temperature     # [2B, 2B]
 
-    # mask self-contrast
-    mask = torch.eye(2*b, device=z.device, dtype=torch.bool)
-    sim.masked_fill_(mask, -1e9)
+    # numeric stability + safe masking for fp16/bf16
+    sim = sim - sim.max(dim=1, keepdim=True)[0].detach()
+    neg_inf = torch.finfo(sim.dtype).min           # ~-65504 for fp16
+    sim.fill_diagonal_(neg_inf)                    # exclude self-sim
 
-    # positives: (i, i+B) and (i+B, i)
     targets = torch.arange(b, device=z.device)
-    targets = torch.cat([targets + b, targets], dim=0)    # [2B]
-
+    targets = torch.cat([targets + b, targets], dim=0)  # [2B]
     loss = F.cross_entropy(sim, targets)
     return loss
+
 
 # ----------------------------
 # Train / Eval
