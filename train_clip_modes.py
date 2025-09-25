@@ -59,10 +59,13 @@ from transformers import (
     CLIPConfig, CLIPTextConfig, CLIPVisionConfig
 )
 import torchvision.models as models
+import torchvision.transforms as T
 
 # ----------------------------
 # Utils
 # ----------------------------
+
+_r = random.Random()
 
 def set_seed(seed: int):
     random.seed(seed)
@@ -128,7 +131,6 @@ def region_preserving_random_resized_crop(img: Image.Image,
 
 class TrainTransform:
     def __init__(self, image_size: int, mean, std):
-        import torchvision.transforms as T
         self.t = T.Compose([
             T.RandomResizedCrop(image_size, scale=(0.6, 1.0), interpolation=T.InterpolationMode.BICUBIC),
             T.RandomHorizontalFlip(p=0.5),
@@ -143,7 +145,6 @@ class TrainTransform:
 class GentleTransform:
     """Gentle augment policy (used for region_preserve fallback): keep factor survival high without metadata."""
     def __init__(self, image_size: int, mean, std):
-        import torchvision.transforms as T
         self.t = T.Compose([
             T.RandomResizedCrop(image_size, scale=(0.9, 1.0), interpolation=T.InterpolationMode.BICUBIC),
             T.RandomHorizontalFlip(p=0.5),
@@ -157,7 +158,6 @@ class GentleTransform:
 
 class EvalTransform:
     def __init__(self, image_size: int, mean, std):
-        import torchvision.transforms as T
         self.t = T.Compose([
             T.Resize(image_size, interpolation=T.InterpolationMode.BICUBIC),
             T.CenterCrop(image_size),
@@ -347,7 +347,6 @@ def build_datasets(dataset_id: str,
                 # Ensure RGB before converting to tensor
                 if img_aug.mode != "RGB":
                     img_aug = img_aug.convert("RGB")
-                import torchvision.transforms as T
                 norm = T.Normalize(mean=image_processor.image_mean, std=image_processor.image_std)
                 tens = T.ToTensor()(img_aug)
                 out["pixel_values"].append(norm(tens))
@@ -1057,26 +1056,66 @@ def train(args):
     # Load checkpoint if resuming
     if args.resume_from:
         print(f"Resuming training from {args.resume_from}")
-        checkpoint = torch.load(args.resume_from, map_location='cpu')
         
-        # Load model state
-        model.load_state_dict(checkpoint['model_state_dict'])
-        
-        # Load optimizer, scheduler, scaler states
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
-        scaler.load_state_dict(checkpoint['scaler_state_dict'])
-        
-        # Load training state
-        start_epoch = checkpoint.get('epoch', 0)
-        global_step = checkpoint.get('global_step', 0)
-        best_val = checkpoint.get('best_val', float("inf"))
-        
-        # Load image_proj if it exists
-        if args.mode == "clip_supcon" and image_proj is not None and 'image_proj_state_dict' in checkpoint:
-            image_proj.load_state_dict(checkpoint['image_proj_state_dict'])
-            
-        print(f"Resumed from epoch {start_epoch}, global_step {global_step}, best_val {best_val:.4f}")
+        # Check if it's a safetensors file
+        if args.resume_from.endswith('.safetensors'):
+            try:
+                from safetensors.torch import load_file
+                # For safetensors files, load the model weights directly
+                state_dict = load_file(args.resume_from, device='cpu')
+                model.load_state_dict(state_dict)
+                print(f"Loaded model weights from safetensors file: {args.resume_from}")
+                
+                # Try to extract epoch number from the path for continuation
+                import re
+                epoch_match = re.search(r'epoch_(\d+)', args.resume_from)
+                if epoch_match:
+                    start_epoch = int(epoch_match.group(1))
+                    global_step = start_epoch * len(train_loader) // max(1, args.grad_accum_steps)
+                    print(f"Extracted epoch {start_epoch} from path. Continuing from epoch {start_epoch}")
+                else:
+                    print("Warning: Could not extract epoch from safetensors path. Starting from epoch 0")
+                
+                print("Warning: Only model weights loaded from safetensors. Optimizer, scheduler, and scaler state not restored.")
+            except ImportError:
+                print("Error: safetensors package not found. Please install it: pip install safetensors")
+                return
+        else:
+            try:
+                checkpoint = torch.load(args.resume_from, map_location='cpu', weights_only=False)
+                
+                # Load model state
+                model.load_state_dict(checkpoint['model_state_dict'])
+                
+                # Load optimizer, scheduler, scaler states
+                optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+                scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+                scaler.load_state_dict(checkpoint['scaler_state_dict'])
+                
+                # Load training state
+                start_epoch = checkpoint.get('epoch', 0)
+                global_step = checkpoint.get('global_step', 0)
+                best_val = checkpoint.get('best_val', float("inf"))
+                
+                # Load image_proj if it exists
+                if args.mode == "clip_supcon" and image_proj is not None and 'image_proj_state_dict' in checkpoint:
+                    image_proj.load_state_dict(checkpoint['image_proj_state_dict'])
+                    
+                print(f"Resumed from epoch {start_epoch}, global_step {global_step}, best_val {best_val:.4f}")
+            except Exception as e:
+                print(f"Warning: Failed to load checkpoint with weights_only=False: {e}")
+                print("Trying with weights_only=True...")
+                try:
+                    checkpoint = torch.load(args.resume_from, map_location='cpu', weights_only=True)
+                    model.load_state_dict(checkpoint['model_state_dict'])
+                    start_epoch = checkpoint.get('epoch', 0)
+                    global_step = checkpoint.get('global_step', 0)
+                    best_val = checkpoint.get('best_val', float("inf"))
+                    print(f"Loaded model weights and basic state. Resumed from epoch {start_epoch}")
+                    print("Warning: Optimizer, scheduler, and scaler state not restored due to weights_only=True")
+                except Exception as e2:
+                    print(f"Error: Failed to load checkpoint: {e2}")
+                    return
 
     state = TrainState(model=model, image_proj=image_proj, optimizer=optimizer, scheduler=scheduler, scaler=scaler, device=device, amp_dtype=amp_dtype)
 
@@ -1115,11 +1154,27 @@ def train(args):
             save_dir = os.path.join(args.output_dir, "best")
             os.makedirs(save_dir, exist_ok=True)
             torch.save(checkpoint_data, os.path.join(save_dir, "pytorch_model.bin"))
+            
+            # Also save just the model state dict as safetensors
+            try:
+                from safetensors.torch import save_file
+                save_file(model.state_dict(), os.path.join(save_dir, "model.safetensors"))
+            except ImportError:
+                print("Warning: safetensors not available, skipping safetensors save")
+            
             print(f"Saved best model to {save_dir}")
         elif is_periodic:
             save_dir = os.path.join(args.output_dir, f"epoch_{epoch_num}")
             os.makedirs(save_dir, exist_ok=True)
             torch.save(checkpoint_data, os.path.join(save_dir, "pytorch_model.bin"))
+            
+            # Also save just the model state dict as safetensors
+            try:
+                from safetensors.torch import save_file
+                save_file(model.state_dict(), os.path.join(save_dir, "model.safetensors"))
+            except ImportError:
+                print("Warning: safetensors not available, skipping safetensors save")
+            
             print(f"Saved checkpoint for epoch {epoch_num} to {save_dir}")
             
         # Also save tokenizer and image processor for easy loading
@@ -1283,7 +1338,7 @@ def train(args):
     print("Training done. Best val_loss:", best_val if val_loader is not None else "N/A")
 
 
-def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-patch32"):
+def load_custom_model(model_path: str, model_name: str = "models/clip-vit-base-patch32"):
     """Load a custom vision encoder CLIP model from saved checkpoint"""
     import os
     
@@ -1369,8 +1424,8 @@ def parse_args():
                             "small_resnet","tiny_resnet","resnet18","densenet121","vgg11","caption_dropout"], 
                     default="standard")
 
-    ap.add_argument("--dataset_id", type=str, default="jomoll/silent-heart-dataset")
-    ap.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32")
+    ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
+    ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
     ap.add_argument("--epochs", type=int, default=100)

@@ -29,35 +29,36 @@ def collect_auc_data(base_path):
             epoch_num = int(match.group(1))
             
             # Check if metrics_both.json exists
+            if os.path.exists(os.path.join(folder_path, 'all_metrics.json')):
+                metrics_file = os.path.join(folder_path, 'all_metrics.json')
+            elif os.path.exists(os.path.join(folder_path, 'metrics_both.json')):
+                metrics_file = os.path.join(folder_path, 'metrics_both.json')
+            else:
+                print(f"metrics file not found in {folder_path}")
             try:
-                metrics_file = os.path.join(folder_path, 'all_metrics.json')  
-            except:
-                metrics_file = os.path.join(folder_path, 'metrics_both.json')    
-            if os.path.exists(metrics_file):
+                with open(metrics_file, 'r') as f:
+                    data = json.load(f)
                 try:
-                    with open(metrics_file, 'r') as f:
-                        data = json.load(f)
-                    try:
-                        # Extract AUC values
-                        heart_auc = data['heart']['eval_auc']
-                        triangle_auc = data['triangle']['eval_auc']
-                        heart_aucs.append(heart_auc)
-                        triangle_aucs.append(triangle_auc)
-                        marker_aucs.append(0.0)
-                        effusion_aucs.append(0.0)
-                    except:    
-                        marker_auc = data['marker']['eval_auc']
-                        effusion_auc = data['pleural_effusion']['eval_auc']
-                        marker_aucs.append(marker_auc)
-                        effusion_aucs.append(effusion_auc)
-                        heart_aucs.append(0.0)
-                        triangle_aucs.append(0.0)
-                    
-                    epochs.append(epoch_num)
-                                        
-                except (json.JSONDecodeError, KeyError) as e:
-                    print(f"Error reading {metrics_file}: {e}")
-    
+                    # Extract AUC values
+                    heart_auc = data['heart']['eval_auc']
+                    triangle_auc = data['triangle']['eval_auc']
+                    heart_aucs.append(heart_auc)
+                    triangle_aucs.append(triangle_auc)
+                    marker_aucs.append(0.0)
+                    effusion_aucs.append(0.0)
+                except:    
+                    marker_auc = data['marker']['eval_auc']
+                    effusion_auc = data['pleural_effusion']['eval_auc']
+                    marker_aucs.append(marker_auc)
+                    effusion_aucs.append(effusion_auc)
+                    heart_aucs.append(0.0)
+                    triangle_aucs.append(0.0)
+                
+                epochs.append(epoch_num)
+                                    
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error reading {metrics_file}: {e}")
+
     # Sort by epoch number
     sorted_data = sorted(zip(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs))
     epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs = zip(*sorted_data) if sorted_data else ([], [], [], [], [])
@@ -78,7 +79,7 @@ def plot_auc_comparison(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion
 
     else:
         plt.plot(epochs, marker_aucs, 'o-', label='Laterality marker AUC', linewidth=2, markersize=6, color='red', alpha=0.8)
-        plt.plot(epochs, effusion_aucs, 's-', label='Plaural Effusion AUC', linewidth=2, markersize=6, color='blue', alpha=0.8)
+        plt.plot(epochs, effusion_aucs, 's-', label='Pleural Effusion AUC', linewidth=2, markersize=6, color='blue', alpha=0.8)
         plt.title('AUC Performance Comparison: Chest X-ray Tasks', fontsize=16, fontweight='bold')
 
     # Customize the plot
