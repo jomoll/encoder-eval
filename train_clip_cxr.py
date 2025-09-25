@@ -229,8 +229,12 @@ def build_datasets(dataset_id: str,
     def _prepare_train(examples):
         # Handle batched dict from HF datasets
         out = {"input_ids": [], "attention_mask": [], "pixel_values": []}
-        is_batched = isinstance(examples["impression_section"], list)
-        captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
+        if args.findings:
+            is_batched = isinstance(examples["findings_no_pleura"], list)
+            captions = examples["findings_no_pleura"] if is_batched else [examples["findings_no_pleura"]]
+        else:
+            is_batched = isinstance(examples["impression_section"], list)
+            captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
         images = examples["image"] if is_batched else [examples["image"]]
         # pass through extra metadata for region-preserving
         specials = []
@@ -265,8 +269,12 @@ def build_datasets(dataset_id: str,
 
     def _prepare_eval(examples):
         out = {"input_ids": [], "attention_mask": [], "pixel_values": []}
-        is_batched = isinstance(examples["impression_section"], list)
-        captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
+        if args.findings:
+            is_batched = isinstance(examples["findings_no_pleura"], list)
+            captions = examples["findings_no_pleura"] if is_batched else [examples["findings_no_pleura"]]
+        else:
+            is_batched = isinstance(examples["impression_section"], list)
+            captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
         images = examples["image"] if is_batched else [examples["image"]]
         for i, (cap, img) in enumerate(zip(captions, images)):
             tok = tokenizer(cap, padding="max_length", truncation=True, max_length=max_len, return_tensors=None)
@@ -1259,6 +1267,7 @@ def parse_args():
                     default="standard")
 
     ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-reports")
+    ap.add_argument("--findings", action="store_true", help="Use 'findings' section only (if available)")
     ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
