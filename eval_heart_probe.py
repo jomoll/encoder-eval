@@ -543,7 +543,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
     ap.add_argument("--model_path", type=str, required=True, help="Path or HF id for the fine-tuned model")
-    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="heart")  # Added "both"
+    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="both")  # Added "both"
     ap.add_argument("--split_train", type=str, default="train")
     ap.add_argument("--split_eval", type=str, default="val")
     ap.add_argument("--batch_size", type=int, default=512)
@@ -578,7 +578,7 @@ def main():
     try:
         processor = CLIPImageProcessor.from_pretrained(args.model_path)
     except Exception:
-        processor = CLIPImageProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        processor = CLIPImageProcessor.from_pretrained("models/clip-vit-base-patch32")
 
     # Build datasets and loaders
     ds_train = build_dataset_with_labels(args.dataset_id, processor, split=args.split_train, task=args.task, mask_special=args.mask_special)
