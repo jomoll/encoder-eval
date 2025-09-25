@@ -1051,81 +1051,90 @@ def train(args):
 
     os.makedirs(args.output_dir, exist_ok=True)
     best_val = float("inf")
+    start_epoch = 0
+    global_step = 0
+
+    # Load checkpoint if resuming
+    if args.resume_from:
+        print(f"Resuming training from {args.resume_from}")
+        checkpoint = torch.load(args.resume_from, map_location='cpu')
+        
+        # Load model state
+        model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # Load optimizer, scheduler, scaler states
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+        scaler.load_state_dict(checkpoint['scaler_state_dict'])
+        
+        # Load training state
+        start_epoch = checkpoint.get('epoch', 0)
+        global_step = checkpoint.get('global_step', 0)
+        best_val = checkpoint.get('best_val', float("inf"))
+        
+        # Load image_proj if it exists
+        if args.mode == "clip_supcon" and image_proj is not None and 'image_proj_state_dict' in checkpoint:
+            image_proj.load_state_dict(checkpoint['image_proj_state_dict'])
+            
+        print(f"Resumed from epoch {start_epoch}, global_step {global_step}, best_val {best_val:.4f}")
 
     state = TrainState(model=model, image_proj=image_proj, optimizer=optimizer, scheduler=scheduler, scaler=scaler, device=device, amp_dtype=amp_dtype)
 
-    # Helper function to save model checkpoint
+    # Simplified save checkpoint function (no latest checkpoint)
     def save_checkpoint(epoch, is_best=False, is_periodic=False):
-        epoch=int(epoch)+1
-        if is_best:
-            save_dir = os.path.join(args.output_dir, "best")
-        elif is_periodic:
-            save_dir = os.path.join(args.output_dir, f"epoch_{epoch}")
-        else:
-            return
-            
-        os.makedirs(save_dir, exist_ok=True)
+        epoch_num = int(epoch) + 1
+        checkpoint_data = {
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'scaler_state_dict': scaler.state_dict(),
+            'epoch': epoch_num,
+            'global_step': global_step,
+            'best_val': best_val,
+            'args': vars(args),  # Save training arguments
+        }
         
-        # Handle different model types
+        # Add image_proj state if it exists
+        if image_proj is not None:
+            checkpoint_data['image_proj_state_dict'] = image_proj.state_dict()
+            
+        # Add custom model info for special modes
         if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11", "caption_dropout"]:
-            # Save custom model components separately
             vision_hidden_size_map = {
                 "small_resnet": 512,
-                "tiny_resnet": 256, 
+                "tiny_resnet": 256,
                 "resnet18": 768,
                 "densenet121": 768,
                 "vgg11": 768,
-                "caption_dropout": 768  # ResNet18 hidden size
+                "caption_dropout": 768
             }
-            vision_hidden_size = vision_hidden_size_map[args.mode]
-            torch.save({
-                'model_state_dict': model.state_dict(),
-                'vision_hidden_size': vision_hidden_size,
-                'mode': args.mode,
-                'epoch': epoch,
-                'optimizer_state_dict': optimizer.state_dict(),
-                'scheduler_state_dict': scheduler.state_dict(),
-                'scaler_state_dict': scaler.state_dict(),
-            }, os.path.join(save_dir, "pytorch_model.bin"))
-            # Save the base components
-            tokenizer.save_pretrained(save_dir)
-            image_processor.save_pretrained(save_dir)
-        else:
-            # Standard CLIP model - save with weights_only compatibility
-            try:
-                model.save_pretrained(save_dir)
-            except Exception as e:
-                print(f"Standard save failed: {e}, trying manual save...")
-                # Manual save for compatibility
-                torch.save({
-                    'model_state_dict': model.state_dict(),
-                    'epoch': epoch,
-                    'optimizer_state_dict': optimizer.state_dict(),
-                    'scheduler_state_dict': scheduler.state_dict(),
-                    'scaler_state_dict': scaler.state_dict(),
-                }, os.path.join(save_dir, "pytorch_model.bin"))
-                model.config.save_pretrained(save_dir)
-            tokenizer.save_pretrained(save_dir)
-            image_processor.save_pretrained(save_dir)
-            
-        if image_proj is not None:
-            torch.save(image_proj.state_dict(), os.path.join(save_dir, "image_proj.pt"))
-            
+            checkpoint_data['vision_hidden_size'] = vision_hidden_size_map[args.mode]
+            checkpoint_data['mode'] = args.mode
+
         if is_best:
+            save_dir = os.path.join(args.output_dir, "best")
+            os.makedirs(save_dir, exist_ok=True)
+            torch.save(checkpoint_data, os.path.join(save_dir, "pytorch_model.bin"))
             print(f"Saved best model to {save_dir}")
         elif is_periodic:
-            print(f"Saved checkpoint for epoch {epoch} to {save_dir}")
+            save_dir = os.path.join(args.output_dir, f"epoch_{epoch_num}")
+            os.makedirs(save_dir, exist_ok=True)
+            torch.save(checkpoint_data, os.path.join(save_dir, "pytorch_model.bin"))
+            print(f"Saved checkpoint for epoch {epoch_num} to {save_dir}")
+            
+        # Also save tokenizer and image processor for easy loading
+        if is_best or is_periodic:
+            tokenizer.save_pretrained(save_dir)
+            image_processor.save_pretrained(save_dir)
 
-    global_step = 0
-    for epoch in range(args.epochs):
-        if epoch == 0:
-            save_checkpoint(epoch-1, is_periodic=True)
-
+    # Training loop
+    for epoch in range(start_epoch, args.epochs):
         model.train()
         if image_proj is not None:
             image_proj.train()
         pbar = tqdm(train_loader, desc=f"Train e{epoch}", total=len(train_loader))
         running = 0.0
+        
         for step, batch in enumerate(pbar, start=1):
             pixel_values = batch.pixel_values.to(device, non_blocking=True)
             input_ids = batch.input_ids.to(device, non_blocking=True)
@@ -1162,7 +1171,7 @@ def train(args):
                 pbar.set_postfix({"loss": f"{running:.4f}", "lr": f"{optimizer.param_groups[0]['lr']:.2e}"})
                 running = 0.0
 
-        # Eval
+        # Eval and save best/periodic checkpoints
         val_loss = None
         if val_loader is not None:
             metrics = evaluate(state, val_loader, args.mode)
@@ -1176,7 +1185,7 @@ def train(args):
         # Save periodic checkpoint every 10 epochs
         if (epoch + 1) % 10 == 0:
             save_checkpoint(epoch, is_periodic=True)
-                    
+
     # Load best model for hub upload
     best_dir = os.path.join(args.output_dir, "best")
     if os.path.exists(best_dir):
@@ -1187,11 +1196,7 @@ def train(args):
             checkpoint = torch.load(os.path.join(best_dir, "pytorch_model.bin"))
             best_model.load_state_dict(checkpoint['model_state_dict'])
             
-            # For hub upload, we'll save the base CLIP components and a custom config
-            best_model_for_hub = base_model  # Upload the base model
-            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
-            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
-            
+
             # Save custom model info in a separate file
             torch.save({
                 'custom_model_type': 'small_resnet',
@@ -1206,12 +1211,7 @@ def train(args):
             best_model = TinyResNetCLIP(base_model, vision_hidden_size=256)
             checkpoint = torch.load(os.path.join(best_dir, "pytorch_model.bin"))
             best_model.load_state_dict(checkpoint['model_state_dict'])
-            
-            # For hub upload, we'll save the base CLIP components and a custom config
-            best_model_for_hub = base_model  # Upload the base model
-            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
-            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
-            
+      
             # Save custom model info in a separate file
             torch.save({
                 'custom_model_type': 'tiny_resnet',
@@ -1234,11 +1234,7 @@ def train(args):
                 'resnet18_state_dict': best_model.vision_model.state_dict(),
                 'visual_projection_state_dict': best_model.visual_projection.state_dict()
             }, os.path.join(best_dir, "custom_model_info.pt"))
-            
-            best_model_for_hub = base_model
-            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
-            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
-            
+
         elif args.mode == "densenet121":
             # Reconstruct custom model
             base_model = CLIPModel.from_pretrained(args.model_name, weights_only=False)
@@ -1253,10 +1249,6 @@ def train(args):
                 'densenet121_state_dict': best_model.vision_model.state_dict(),
                 'visual_projection_state_dict': best_model.visual_projection.state_dict()
             }, os.path.join(best_dir, "custom_model_info.pt"))
-            
-            best_model_for_hub = base_model
-            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
-            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
             
         elif args.mode == "vgg11":
             # Reconstruct custom model
@@ -1273,10 +1265,6 @@ def train(args):
                 'visual_projection_state_dict': best_model.visual_projection.state_dict()
             }, os.path.join(best_dir, "custom_model_info.pt"))
             
-            best_model_for_hub = base_model
-            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
-            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
-            
         elif args.mode == "caption_dropout":
             # Reconstruct ResNet18 model for caption dropout
             base_model = CLIPModel.from_pretrained(args.model_name, weights_only=False)
@@ -1291,58 +1279,9 @@ def train(args):
                 'resnet18_state_dict': best_model.vision_model.state_dict(),
                 'visual_projection_state_dict': best_model.visual_projection.state_dict()
             }, os.path.join(best_dir, "custom_model_info.pt"))
-            
-            best_model_for_hub = base_model
-            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
-            best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
-            
-        else:
-            best_model_for_hub = CLIPModel.from_pretrained(best_dir)
-            best_tokenizer = CLIPTokenizerFast.from_pretrained(best_dir)
-            try:
-                best_image_processor = CLIPImageProcessor.from_pretrained(best_dir)
-            except: 
-                best_image_processor = image_processor
         
-        # Extract mode name from output_dir for hub naming
-        output_dir_name = os.path.basename(args.output_dir.rstrip('/'))
-        hub_name = f"{output_dir_name}-best"
-        
-        # save best model to huggingface hub
-        best_model_for_hub.push_to_hub(hub_name, organization="jomoll")
-        best_tokenizer.push_to_hub(hub_name, organization="jomoll")
-        best_image_processor.push_to_hub(hub_name, organization="jomoll")
-        
-        # Upload custom model info if it exists
-        if args.mode in ["small_resnet", "tiny_resnet", "resnet18", "densenet121", "vgg11", "caption_dropout"]:
-            print(f"Note: Custom {args.mode} model saved locally at {best_dir}")
-            print("Custom model components saved in custom_model_info.pt")
-
     print("Training done. Best val_loss:", best_val if val_loader is not None else "N/A")
 
-    # Optional: dump val embeddings to probe later
-    if args.dump_embeddings_for_val and val_loader is not None:
-        dump_path = os.path.join(args.output_dir, "val_embeddings.pt")
-        print("Dumping val embeddings to:", dump_path)
-        
-        # Use the actual trained model for embedding extraction
-        eval_model = best_model if args.mode in ["small_resnet", "tiny_resnet"] and 'best_model' in locals() else model
-        eval_model.eval()
-        
-        all_img, all_txt = [], []
-        with torch.no_grad():
-            for batch in tqdm(val_loader, desc="Embed Val"):
-                pixel_values = batch.pixel_values.to(device)
-                input_ids = batch.input_ids.to(device)
-                attention_mask = batch.attention_mask.to(device)
-                with autocast(dtype=amp_dtype):
-                    out = eval_model(pixel_values=pixel_values, input_ids=input_ids, attention_mask=attention_mask, return_loss=False)
-                all_img.append(out.image_embeds.detach().cpu())
-                all_txt.append(out.text_embeds.detach().cpu())
-        all_img = torch.cat(all_img, dim=0)
-        all_txt = torch.cat(all_txt, dim=0)
-        torch.save({"image_embeds": all_img, "text_embeds": all_txt}, dump_path)
-        print("Saved:", dump_path)
 
 def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-patch32"):
     """Load a custom vision encoder CLIP model from saved checkpoint"""
@@ -1466,6 +1405,10 @@ def parse_args():
                     help="Initialize CLIP with random weights instead of from_pretrained")
     ap.add_argument("--freeze_text", action="store_true",
                     help="Freeze text encoder (useful for image-only learning)")
+    
+    # Add resume argument
+    ap.add_argument("--resume_from", type=str, default=None,
+                    help="Path to checkpoint to resume training from")
     
     return ap.parse_args()
 
