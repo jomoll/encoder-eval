@@ -1,0 +1,30 @@
+{
+  "heart": {
+    "task": "heart",
+    "eval_auc": 0.662880125,
+    "eval_acc_default@0.5": 0.62325,
+    "eval_acc_argmax": 0.62325,
+    "eval_acc_best": 0.625,
+    "best_threshold": 0.5023470520973206,
+    "threshold_ref": "eval",
+    "balanced_accuracy": 0.625,
+    "f1": 0.6159754224270353,
+    "temperature": 1.0,
+    "n_train": 400000,
+    "n_eval": 4000
+  },
+  "triangle": {
+    "task": "triangle",
+    "eval_auc": 0.9989847351170656,
+    "eval_acc_default@0.5": 0.997,
+    "eval_acc_argmax": 0.997,
+    "eval_acc_best": 0.99775,
+    "best_threshold": 0.9300565719604492,
+    "threshold_ref": "eval",
+    "balanced_accuracy": 0.9962686567164178,
+    "f1": 0.9962546816479401,
+    "temperature": 1.0,
+    "n_train": 400000,
+    "n_eval": 4000
+  }
+}
