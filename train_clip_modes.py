@@ -1184,6 +1184,8 @@ def train(args):
 
     # Training loop
     for epoch in range(start_epoch, args.epochs):
+        if epoch == 0:
+            save_checkpoint(epoch-1, is_periodic=True)  # save initial model
         model.train()
         if image_proj is not None:
             image_proj.train()
