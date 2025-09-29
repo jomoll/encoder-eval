@@ -24,7 +24,7 @@ def parse_args():
     p.add_argument("--image_col", default="image")
     p.add_argument("--label_col", default="label")
     p.add_argument("--classes", nargs="+", default=["heart", "triangle"], help="ordered class names")
-    p.add_argument("--model", default="vit_small_patch16_224", help="timm backbone name used during pretraining")
+    p.add_argument("--model", default="vit_base_patch16_224", help="timm backbone name used during pretraining")
     p.add_argument("--ckpt", required=True, help="path to saved backbone state_dict, e.g. epoch_099_dino_backbone.pt")
     p.add_argument("--img_size", type=int, default=224)
     p.add_argument("--batch_size", type=int, default=256)
