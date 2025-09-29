@@ -69,14 +69,19 @@ def build_transform(img_size):
         T.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
     ])
 
-def load_backbone(model_name, ckpt_path, device):
-    import timm
-    model = timm.create_model(model_name, pretrained=False, num_classes=0)  # features only
+def load_backbone(mode, model_name, ckpt_path, device):
+    if mode == "mae":
+        from train_ssl import MAEWrapper
+        model = MAEWrapper(model_name=model_name, img_size=224)
+        backbone = model.backbone()
+    else:  # dino
+        import timm
+        backbone = timm.create_model(model_name, pretrained=False, num_classes=0)
     sd = torch.load(ckpt_path, map_location="cpu")
-    model.load_state_dict(sd, strict=True)
-    model.eval().to(device)
-    feat_dim = model.num_features if hasattr(model, "num_features") else None
-    return model, feat_dim
+    backbone.load_state_dict(sd, strict=True)
+    backbone.eval().to(device)
+    feat_dim = getattr(backbone, "num_features", None)
+    return backbone, feat_dim
 
 @torch.no_grad()
 def extract_features(backbone, loader, device):
@@ -157,7 +162,11 @@ def main():
     dl_test  = DataLoader(ds_test,  batch_size=args.batch_size, shuffle=False, num_workers=args.workers, pin_memory=True)
 
     # load backbone
-    backbone, feat_dim = load_backbone(args.model, args.ckpt, device)
+    if "mae" in args.ckpt:
+        mode = "mae"
+    else:
+        mode = "dino"
+    backbone, feat_dim = load_backbone(mode, args.model, args.ckpt, device)
     print(f"Loaded backbone {args.model} from {args.ckpt}. feat_dim={feat_dim}")
 
     # features
