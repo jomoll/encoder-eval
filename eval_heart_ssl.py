@@ -9,6 +9,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
 
+from tqdm import tqdm
 from datasets import load_dataset
 import numpy as np
 from collections import Counter
@@ -22,7 +23,7 @@ def parse_args():
     p.add_argument("--train_split", default="train")
     p.add_argument("--test_split", default="test")
     p.add_argument("--image_col", default="image")
-    p.add_argument("--label_col", default="label")
+    p.add_argument("--label_col", default="H")
     p.add_argument("--classes", nargs="+", default=["heart", "triangle"], help="ordered class names")
     p.add_argument("--model", default="vit_base_patch16_224", help="timm backbone name used during pretraining")
     p.add_argument("--ckpt", required=True, help="path to saved backbone state_dict, e.g. epoch_099_dino_backbone.pt")
@@ -86,7 +87,7 @@ def load_backbone(mode, model_name, ckpt_path, device):
 @torch.no_grad()
 def extract_features(backbone, loader, device):
     feats, labels = [], []
-    for x, y in loader:
+    for x, y in tqdm(loader, desc="Extracting features"):
         x = x.to(device, non_blocking=True)
         f = backbone(x)
         if f.ndim > 2:
@@ -111,7 +112,7 @@ def train_linear_probe(train_feats, train_labels, val_feats, val_labels, in_dim,
     train_feats = train_feats.to(device); train_labels = train_labels.to(device)
     val_feats = val_feats.to(device); val_labels = val_labels.to(device)
     best_acc = 0.0
-    for ep in range(1, epochs+1):
+    for ep in tqdm(range(1, epochs+1), desc="Training Linear Probe"):
         model.train()
         logits = model(train_feats)
         loss = criterion(logits, train_labels)
@@ -173,7 +174,7 @@ def main():
     with torch.no_grad():
         train_feats, train_labels = extract_features(backbone, dl_train, device)
         test_feats,  test_labels  = extract_features(backbone, dl_test, device)
-
+    print(f"Extracted features: train {train_feats.shape}, test {test_feats.shape}")
     results = {"probe": args.probe, "classes": args.classes}
 
     if args.probe == "linear":
