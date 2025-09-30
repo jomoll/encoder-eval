@@ -796,14 +796,14 @@ def build_loaders(ds, tokenizer, image_processor, args, device):
     
     train_loader = DataLoader(
         ds["train"], batch_size=args.batch_size, shuffle=True,
-        num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate, drop_last=True
+        num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate, drop_last=True, num_workers=1
     )
     # Val loader
     val_loader = None
     if "val" in ds:
         val_loader = DataLoader(
             ds["val"], batch_size=args.eval_batch_size or args.batch_size, shuffle=False,
-            num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate
+            num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate,  num_workers=1
         )
     return train_loader, val_loader
 
@@ -1266,9 +1266,9 @@ def parse_args():
                             "small_resnet","tiny_resnet","resnet18","densenet121","vgg11"], 
                     default="standard")
 
-    ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-reports")
+    ap.add_argument("--dataset_id", type=str, default="jomoll/mimic-cxr-reports")
     ap.add_argument("--findings", action="store_true", help="Use 'findings' section only (if available)")
-    ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
+    ap.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
     ap.add_argument("--epochs", type=int, default=10)

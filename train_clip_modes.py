@@ -1184,6 +1184,8 @@ def train(args):
 
     # Training loop
     for epoch in range(start_epoch, args.epochs):
+        if epoch == 0:
+            save_checkpoint(epoch-1, is_periodic=True)
         model.train()
         if image_proj is not None:
             image_proj.train()
@@ -1338,7 +1340,7 @@ def train(args):
     print("Training done. Best val_loss:", best_val if val_loader is not None else "N/A")
 
 
-def load_custom_model(model_path: str, model_name: str = "models/clip-vit-base-patch32"):
+def load_custom_model(model_path: str, model_name: str = "openai/clip-vit-base-patch32"):
     """Load a custom vision encoder CLIP model from saved checkpoint"""
     import os
     
@@ -1424,8 +1426,8 @@ def parse_args():
                             "small_resnet","tiny_resnet","resnet18","densenet121","vgg11","caption_dropout"], 
                     default="standard")
 
-    ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
-    ap.add_argument("--model_name", type=str, default="models/clip-vit-base-patch32")
+    ap.add_argument("--dataset_id", type=str, default="jomoll/silent-heart-dataset")
+    ap.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
     ap.add_argument("--epochs", type=int, default=100)
