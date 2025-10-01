@@ -110,7 +110,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--path", type=str, required=False, default="results_densenet", help="Path to the probe output directory")
     # Path to the probe output directory
-    base_path = "/home/moll/encoder-eval/outputs/"
+    base_path = "/home/moll/encoder-eval/outputs_new/"
     base_path = base_path + ap.parse_args().path
     print(f"Using base path: {base_path}")
     print("Collecting AUC data from epoch folders...")

@@ -5,12 +5,10 @@ MAE and DINO training on a Hugging Face dataset with columns:
   image: PIL.Image or numpy array
   captions: string (unused here)
 
-Examples
-  python train_ssl_hf.py --mode mae  --data jomoll/TAIX-reasoning-v2.1 --split train --out runs/mae
-  python train_ssl_hf.py --mode dino --data jomoll/TAIX-reasoning-v2.1 --split train --out runs/dino
 """
 
 import argparse, math
+import numpy as np
 from pathlib import Path
 from tqdm import tqdm
 import torch
@@ -45,7 +43,7 @@ def parse_args():
     p.add_argument("--split", type=str, default="train")
     p.add_argument("--out", type=str, required=True)
     p.add_argument("--epochs", type=int, default=100)
-    p.add_argument("--batch_size", type=int, default=256)
+    p.add_argument("--batch_size", type=int, default=64)  # Reduced for MAE memory usage
     p.add_argument("--workers", type=int, default=8)
     p.add_argument("--img_size", type=int, default=224)
     p.add_argument("--mask_ratio", type=float, default=0.75, help="MAE")
@@ -120,62 +118,199 @@ class MultiCropTransform:
         return crops
 
 
-# ------------------ MAE ------------------
+# ------------------ MAE Implementation ------------------
 class MAEWrapper(nn.Module):
-    def __init__(self, model_name="vit_base_patch16_224.mae", mask_ratio=0.75, img_size=224):
+    def __init__(self, model_name="vit_base_patch16_224", mask_ratio=0.75, img_size=224):
         super().__init__()
-        # Use the mae variant which should support reconstruction
-        if "mae" not in model_name:
-            model_name = model_name + ".mae"
-        
-        try:
-            self.model = timm.create_model(model_name, pretrained=False, img_size=img_size)
-        except Exception:
-            # Fallback to base model and implement MAE loss ourselves
-            base_name = model_name.replace(".mae", "")
-            self.model = timm.create_model(base_name, pretrained=False, img_size=img_size, num_classes=0)
-            self.use_custom_loss = True
-        else:
-            self.use_custom_loss = False
-            
+        # Load base ViT model as encoder
+        self.encoder = timm.create_model(model_name, pretrained=False, img_size=img_size, num_classes=0)
         self.mask_ratio = mask_ratio
+        self.patch_size = 16  # Assuming patch16 model
+        self.num_patches = (img_size // self.patch_size) ** 2
+        
+        # MAE decoder components
+        embed_dim = self.encoder.num_features
+        decoder_embed_dim = 512
+        
+        self.decoder_embed = nn.Linear(embed_dim, decoder_embed_dim, bias=True)
+        self.mask_token = nn.Parameter(torch.zeros(1, 1, decoder_embed_dim))
+        self.decoder_pos_embed = nn.Parameter(torch.zeros(1, self.num_patches + 1, decoder_embed_dim), requires_grad=False)
+        
+        # Simple decoder
+        self.decoder_blocks = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(
+                d_model=decoder_embed_dim,
+                nhead=16,
+                dim_feedforward=decoder_embed_dim * 4,
+                batch_first=True,
+                dropout=0.0,
+                activation='gelu'
+            ),
+            num_layers=8
+        )
+        
+        self.decoder_norm = nn.LayerNorm(decoder_embed_dim)
+        self.decoder_pred = nn.Linear(decoder_embed_dim, self.patch_size**2 * 3, bias=True)
+        
+        self.initialize_weights()
 
-    def forward(self, x):
-        if self.use_custom_loss:
-            # Simple contrastive/reconstruction loss for demo
-            features = self.model(x)  # [B, embed_dim]
-            # Create a simple reconstruction loss (this is a placeholder)
-            # In practice, you'd want proper MAE reconstruction
-            loss = torch.mean(features ** 2)  # Simple L2 regularization as proxy loss
-            return loss, None, None
-        else:
-            # Try different methods to get loss from MAE model
-            if hasattr(self.model, 'forward_loss'):
-                loss = self.model.forward_loss(x, mask_ratio=self.mask_ratio)
-                return loss, None, None
-            elif hasattr(self.model, 'forward_with_mask'):
-                output = self.model.forward_with_mask(x, mask_ratio=self.mask_ratio)
-                if isinstance(output, tuple):
-                    return output
-                else:
-                    return output, None, None
-            else:
-                # Last resort: just use the output as features and create dummy loss
-                output = self.model(x)
-                if torch.is_tensor(output) and len(output.shape) > 1:
-                    # Create a simple loss from features
-                    loss = torch.mean(output ** 2)
-                    return loss, None, None
-                else:
-                    return output, None, None
-            
+    def initialize_weights(self):
+        # Initialize decoder pos embed
+        pos_embed = self._get_2d_sincos_pos_embed(self.decoder_pos_embed.shape[-1], 
+                                                  int(self.num_patches**.5))
+        # Add CLS token position (zeros) at the beginning
+        pos_embed = np.concatenate([np.zeros([1, pos_embed.shape[1]]), pos_embed], axis=0)
+        self.decoder_pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+        
+        # Initialize mask token
+        torch.nn.init.normal_(self.mask_token, std=.02)
+        
+        # Initialize decoder layers
+        self.apply(self._init_weights)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            torch.nn.init.xavier_uniform_(m.weight)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+
+    def _get_2d_sincos_pos_embed(self, embed_dim, grid_size):
+        grid_h = np.arange(grid_size, dtype=np.float32)
+        grid_w = np.arange(grid_size, dtype=np.float32)
+        grid = np.meshgrid(grid_w, grid_h)
+        grid = np.stack(grid, axis=0)
+        grid = grid.reshape([2, 1, grid_size, grid_size])
+        pos_embed = self._get_2d_sincos_pos_embed_from_grid(embed_dim, grid)
+        return pos_embed
+
+    def _get_2d_sincos_pos_embed_from_grid(self, embed_dim, grid):
+        assert embed_dim % 2 == 0
+        emb_h = self._get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[0])
+        emb_w = self._get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[1])
+        emb = np.concatenate([emb_h, emb_w], axis=1)
+        return emb
+
+    def _get_1d_sincos_pos_embed_from_grid(self, embed_dim, pos):
+        assert embed_dim % 2 == 0
+        omega = np.arange(embed_dim // 2, dtype=np.float32)
+        omega /= embed_dim / 2.
+        omega = 1. / 10000**omega
+        pos = pos.reshape(-1)
+        out = np.einsum('m,d->md', pos, omega)
+        emb_sin = np.sin(out)
+        emb_cos = np.cos(out)
+        emb = np.concatenate([emb_sin, emb_cos], axis=1)
+        return emb
+
+    def patchify(self, imgs):
+        """Convert images to patches"""
+        p = self.patch_size
+        assert imgs.shape[2] == imgs.shape[3] and imgs.shape[2] % p == 0
+        
+        h = w = imgs.shape[2] // p
+        x = imgs.reshape(shape=(imgs.shape[0], 3, h, p, w, p))
+        x = torch.einsum('nchpwq->nhwpqc', x)
+        x = x.reshape(shape=(imgs.shape[0], h * w, p**2 * 3))
+        return x
+
+    def unpatchify(self, x):
+        """Convert patches back to images"""
+        p = self.patch_size
+        h = w = int(x.shape[1]**.5)
+        assert h * w == x.shape[1]
+        
+        x = x.reshape(shape=(x.shape[0], h, w, p, p, 3))
+        x = torch.einsum('nhwpqc->nchpwq', x)
+        imgs = x.reshape(shape=(x.shape[0], 3, h * p, h * p))
+        return imgs
+
+    def random_masking(self, x, mask_ratio):
+        """Random masking following MAE"""
+        N, L, D = x.shape
+        len_keep = int(L * (1 - mask_ratio))
+        
+        noise = torch.rand(N, L, device=x.device)
+        ids_shuffle = torch.argsort(noise, dim=1)
+        ids_restore = torch.argsort(ids_shuffle, dim=1)
+        
+        ids_keep = ids_shuffle[:, :len_keep]
+        x_masked = torch.gather(x, dim=1, index=ids_keep.unsqueeze(-1).repeat(1, 1, D))
+        
+        mask = torch.ones([N, L], device=x.device)
+        mask[:, :len_keep] = 0
+        mask = torch.gather(mask, dim=1, index=ids_restore)
+        
+        return x_masked, mask, ids_restore
+
+    def forward_encoder(self, x, mask_ratio):
+        # Get patches and apply masking
+        x = self.encoder.patch_embed(x)
+        x = x + self.encoder.pos_embed[:, 1:, :]
+        x, mask, ids_restore = self.random_masking(x, mask_ratio)
+        
+        # Add cls token
+        cls_token = self.encoder.cls_token + self.encoder.pos_embed[:, :1, :]
+        cls_tokens = cls_token.expand(x.shape[0], -1, -1)
+        x = torch.cat((cls_tokens, x), dim=1)
+        
+        # Apply transformer blocks
+        for blk in self.encoder.blocks:
+            x = blk(x)
+        x = self.encoder.norm(x)
+        
+        return x, mask, ids_restore
+
+    def forward_decoder(self, x, ids_restore):
+        # Embed tokens
+        x = self.decoder_embed(x)
+        
+        # Append mask tokens
+        mask_tokens = self.mask_token.repeat(x.shape[0], ids_restore.shape[1] + 1 - x.shape[1], 1)
+        x_ = torch.cat([x[:, 1:, :], mask_tokens], dim=1)
+        x_ = torch.gather(x_, dim=1, index=ids_restore.unsqueeze(-1).repeat(1, 1, x.shape[2]))
+        x = torch.cat([x[:, :1, :], x_], dim=1)
+        
+        # Add pos embed
+        x = x + self.decoder_pos_embed
+        
+        # Apply decoder blocks
+        x = self.decoder_blocks(x)
+        x = self.decoder_norm(x)
+        
+        # Predictor projection
+        x = self.decoder_pred(x)
+        
+        # Remove cls token
+        x = x[:, 1:, :]
+        
+        return x
+
+    def forward_loss(self, imgs, pred, mask):
+        """Compute reconstruction loss"""
+        target = self.patchify(imgs)
+        
+        if self.encoder.norm_pix_loss if hasattr(self.encoder, 'norm_pix_loss') else False:
+            mean = target.mean(dim=-1, keepdim=True)
+            var = target.var(dim=-1, keepdim=True)
+            target = (target - mean) / (var + 1.e-6)**.5
+        
+        loss = (pred - target) ** 2
+        loss = loss.mean(dim=-1)  # Mean loss per patch
+        
+        loss = (loss * mask).sum() / mask.sum()  # Mean loss on removed patches
+        return loss
+
+    def forward(self, imgs):
+        latent, mask, ids_restore = self.forward_encoder(imgs, self.mask_ratio)
+        pred = self.forward_decoder(latent, ids_restore)
+        loss = self.forward_loss(imgs, pred, mask)
+        return loss, pred, mask
+        
     def backbone(self):
-        if hasattr(self.model, 'encoder'):
-            return self.model.encoder
-        elif hasattr(self.model, 'backbone'):
-            return self.model.backbone
-        else:
-            return self.model
+        return self.encoder
 
 
 # ------------------ DINO ------------------
@@ -217,9 +352,14 @@ def update_ema(teacher, student, m):
 
 
 # ------------------ utils ------------------
-def cosine_lr(optimizer, base_lr, epoch, max_epochs):
+def cosine_lr(optimizer, base_lr, epoch, max_epochs, warmup_epochs=10):
+    if epoch < warmup_epochs:
+        lr = base_lr * epoch / warmup_epochs
+    else:
+        lr = base_lr * 0.5 * (1 + math.cos(math.pi * (epoch - warmup_epochs) / (max_epochs - warmup_epochs)))
+    
     for pg in optimizer.param_groups:
-        pg['lr'] = base_lr * 0.5 * (1 + math.cos(math.pi * epoch / max_epochs))
+        pg['lr'] = lr
 
 
 def save_backbone(state_dir, epoch, mode, backbone):
@@ -239,6 +379,7 @@ def main():
     # load HF dataset
     hf_ds = load_dataset(args.data, split=args.split)
     print(f"Loaded dataset {args.data} split={args.split} with {len(hf_ds)} examples")
+    
     if args.mode == "mae":
         transform = build_mae_transform(args.img_size)
         ds = HFViewsDataset(hf_ds, args.image_col, transform)
@@ -246,30 +387,36 @@ def main():
                         pin_memory=True, drop_last=True)
 
         model_name = args.model or "vit_base_patch16_224"
-        model = MAEWrapper(model_name=model_name, img_size=args.img_size).to(device)
-        print(f"Loaded model {model_name}")
+        model = MAEWrapper(model_name=model_name, mask_ratio=args.mask_ratio, img_size=args.img_size).to(device)
+        print(f"Loaded MAE model with encoder: {model_name}")
+        
+        # MAE-specific optimizer settings
         lr = args.lr or 1.5e-4
         opt = optim.AdamW(model.parameters(), lr=lr, betas=(0.9, 0.95), weight_decay=args.wd)
-        # tqdm
+        
+        print(f"Starting MAE training for {args.epochs} epochs...")
         for epoch in tqdm(range(1, args.epochs + 1), desc="Training Epochs"):
-            model.train(); cosine_lr(opt, lr, epoch-1, args.epochs)
+            model.train()
+            cosine_lr(opt, lr, epoch-1, args.epochs)
             loss_sum, n = 0.0, 0
-            for imgs, _ in tqdm(dl, desc="Training Iterations"):
+            
+            pbar = tqdm(dl, desc=f"Epoch {epoch}")
+            for imgs, _ in pbar:
                 imgs = imgs.to(device, non_blocking=True)
-                model_output = model(imgs)
-                
-                # Extract loss from model output
-                if isinstance(model_output, tuple):
-                    loss = model_output[0]
-                else:
-                    loss = model_output
+                loss, pred, mask = model(imgs)
                     
                 (loss / args.accum).backward()
                 if (n + 1) % args.accum == 0:
-                    opt.step(); opt.zero_grad(set_to_none=True)
-                loss_sum += loss.item(); n += 1
+                    opt.step()
+                    opt.zero_grad(set_to_none=True)
+                
+                loss_sum += loss.item()
+                n += 1
+                pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+                
+            avg_loss = loss_sum / n
             ckpt = save_backbone(out, epoch, "mae", model.backbone())
-            print(f"[{epoch:03d}] loss={loss_sum/n:.4f} saved={ckpt}")
+            print(f"[{epoch:03d}] MAE loss={avg_loss:.4f} saved={ckpt}")
 
     else:  # DINO
         if not _has_lightly:
@@ -277,7 +424,8 @@ def main():
         transform = MultiCropTransform(args.img_size)
         ds = HFViewsDataset(hf_ds, args.image_col, transform)
         collate_fn = MultiViewCollate()
-        dl = DataLoader(ds, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, pin_memory=True, drop_last=True, collate_fn=collate_fn)
+        dl = DataLoader(ds, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, 
+                       pin_memory=True, drop_last=True, collate_fn=collate_fn)
         
         student, teacher = build_dino_student_teacher(args.model or "vit_small_patch16_224")
         student, teacher = student.to(device), teacher.to(device)
@@ -285,7 +433,7 @@ def main():
         opt = torch.optim.AdamW(student.parameters(), lr=args.lr or 1e-4, weight_decay=args.wd)
         loss_fn = LightlyDINOLoss(
             output_dim=256,
-            warmup_teacher_temp=0.04,  # sane defaults
+            warmup_teacher_temp=0.04,
             teacher_temp=0.04,
             warmup_teacher_temp_epochs=0,
         ).to(device)
@@ -296,14 +444,9 @@ def main():
             loss_sum, n = 0, 0
             for views, _, _ in tqdm(dl, desc="Training Iterations"):
                 views = [v.to(device, non_blocking=True) for v in views]
-                s_out = [student(v).flatten(1) for v in views]  # Ensure 2D: [batch, features]
+                s_out = [student(v).flatten(1) for v in views]
                 with torch.no_grad():
-                    t_out = [teacher(v).flatten(1) for v in views]  # Ensure 2D: [batch, features]
-                
-                # Debug: print shapes for first batch
-                if n == 0:
-                    print(f"Student outputs: {[x.shape for x in s_out]}")
-                    print(f"Teacher outputs: {[x.shape for x in t_out]}")
+                    t_out = [teacher(v).flatten(1) for v in views]
                 
                 loss = loss_fn(s_out, t_out)
                 (loss / args.accum).backward()
@@ -312,8 +455,8 @@ def main():
                 update_ema(teacher, student, 0.996)
                 loss_sum += loss.item(); n += 1
             print(f"DINO epoch {epoch:3d} loss {loss_sum/n:.4f}")
-            if epoch % 10 == 9:
-                save_backbone(out, epoch, "dino", student[0])  # save the backbone part
+            if epoch % 10 == 0:
+                save_backbone(out, epoch, "dino", student[0])
 
 
 if __name__ == "__main__":
