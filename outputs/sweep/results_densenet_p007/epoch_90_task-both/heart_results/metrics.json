@@ -1,0 +1,14 @@
+{
+  "task": "heart",
+  "eval_auc": 0.99026775,
+  "eval_acc_default@0.5": 0.95,
+  "eval_acc_argmax": 0.95,
+  "eval_acc_best": 0.95325,
+  "best_threshold": 0.5220447182655334,
+  "threshold_ref": "eval",
+  "balanced_accuracy": 0.9532499999999999,
+  "f1": 0.9533549513594413,
+  "temperature": 1.0,
+  "n_train": 400000,
+  "n_eval": 4000
+}
