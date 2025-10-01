@@ -75,11 +75,9 @@ except Exception:
 # Model loading
 # ----------------------------
 
-def load_model(model_path: str, device):
-    """
-    Load either a standard CLIP model (HF directory) or a custom vision encoder CLIP checkpoint
-    saved by your train_clip_modes.py (we key on substrings in the path).
-    """
+def load_model(model_path: str, device, load_lora_adapters=None):
+    """Extended to support LoRA adapters"""
+    
     # Check for custom model info file first
     custom_info_path = os.path.join(model_path, "custom_model_info.pt")
     if os.path.exists(custom_info_path):
@@ -117,6 +115,13 @@ def load_model(model_path: str, device):
         
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(device).eval()
+        
+        # Load LoRA adapters if specified
+        if load_lora_adapters and os.path.exists(load_lora_adapters):
+            from peft import PeftModel
+            print(f"Loading LoRA adapters from {load_lora_adapters}")
+            model = PeftModel.from_pretrained(model, load_lora_adapters)
+        
         return model
     
     # Fallback to legacy path-based detection
@@ -190,6 +195,13 @@ def load_model(model_path: str, device):
     else:
         print("Loading CLIP model from", model_path)
         model = CLIPModel.from_pretrained(model_path)
+        
+        # Load LoRA adapters if specified
+        if load_lora_adapters and os.path.exists(load_lora_adapters):
+            from peft import PeftModel
+            print(f"Loading LoRA adapters from {load_lora_adapters}")
+            model = PeftModel.from_pretrained(model, load_lora_adapters)
+        
         model.to(device).eval()
         return model
 
