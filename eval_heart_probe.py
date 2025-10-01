@@ -77,7 +77,6 @@ except Exception:
 
 def load_model(model_path: str, device, load_lora_adapters=None):
     """Extended to support LoRA adapters"""
-    
     # Check for custom model info file first
     custom_info_path = os.path.join(model_path, "custom_model_info.pt")
     if os.path.exists(custom_info_path):
@@ -121,9 +120,7 @@ def load_model(model_path: str, device, load_lora_adapters=None):
             from peft import PeftModel
             print(f"Loading LoRA adapters from {load_lora_adapters}")
             model = PeftModel.from_pretrained(model, load_lora_adapters)
-        
-        return model
-    
+        return model    
     # Fallback to legacy path-based detection
     if "tiny" in model_path and "resnet" in model_path and TinyResNetCLIP is not None:
         print("Loading TinyResNetCLIP model from", model_path)
@@ -138,7 +135,6 @@ def load_model(model_path: str, device, load_lora_adapters=None):
         model = TinyResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(device).eval()
-        return model
     elif "resnet18" in model_path and ResNet18CLIP is not None:
         print("Loading ResNet18CLIP model from", model_path)
         base_model_name = "models/clip-vit-base-patch32"
@@ -151,7 +147,6 @@ def load_model(model_path: str, device, load_lora_adapters=None):
         model = ResNet18CLIP(base_model, vision_hidden_size=vision_hidden_size)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(device).eval()
-        return model
     elif "densenet" in model_path and DenseNet121CLIP is not None:
         print("Loading DenseNet121CLIP model from", model_path)
         base_model_name = "models/clip-vit-base-patch32"
@@ -162,9 +157,10 @@ def load_model(model_path: str, device, load_lora_adapters=None):
         checkpoint = torch.load(checkpoint_path, map_location='cpu')
         vision_hidden_size = checkpoint.get('vision_hidden_size', 768)
         model = DenseNet121CLIP(base_model, vision_hidden_size=vision_hidden_size)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        try:
+            model.load_state_dict(checkpoint['model_state_dict'])
+        except: model.load_state_dict(checkpoint)
         model.to(device).eval()
-        return model
     elif "vgg" in model_path and VGG11CLIP is not None:
         print("Loading VGG11CLIP model from", model_path)
         base_model_name = "models/clip-vit-base-patch32"
@@ -177,7 +173,6 @@ def load_model(model_path: str, device, load_lora_adapters=None):
         model = VGG11CLIP(base_model, vision_hidden_size=vision_hidden_size)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(device).eval()
-        return model
     elif "resnet" in model_path and SmallResNetCLIP is not None:
         print("Loading SmallResNetCLIP model from", model_path)
         # Base CLIP used to construct the wrapper (for configs)
@@ -191,7 +186,6 @@ def load_model(model_path: str, device, load_lora_adapters=None):
         model = SmallResNetCLIP(base_model, vision_hidden_size=vision_hidden_size)
         model.load_state_dict(checkpoint['model_state_dict'])
         model.to(device).eval()
-        return model
     else:
         print("Loading CLIP model from", model_path)
         model = CLIPModel.from_pretrained(model_path)
@@ -203,7 +197,11 @@ def load_model(model_path: str, device, load_lora_adapters=None):
             model = PeftModel.from_pretrained(model, load_lora_adapters)
         
         model.to(device).eval()
-        return model
+    if load_lora_adapters and os.path.exists(load_lora_adapters):
+            from peft import PeftModel
+            print(f"Loading LoRA adapters from {load_lora_adapters}")
+            model = PeftModel.from_pretrained(model, load_lora_adapters)    
+    return model
 
 # ----------------------------
 # Utils
@@ -632,6 +630,8 @@ def main():
                    help="Hidden dimensions for MLP probe (e.g., --hidden_dims 256 128)")
     ap.add_argument("--dropout", type=float, default=0.1,
                    help="Dropout rate for MLP probe")
+    ap.add_argument("--load_lora_adapters", type=str, default=None,
+                   help="Path to LoRA adapters to load (if any)")
     args = ap.parse_args()
 
     # Build save directory: include model basename, task, and probe type
@@ -645,7 +645,9 @@ def main():
     amp_dtype = torch.float16 if args.amp_dtype == "fp16" else torch.bfloat16
 
     # Load model + processor
-    model = load_model(args.model_path, device)
+    if args.load_lora_adapters is not None:
+        args.load_lora_adapters = args.model_path + "/" + args.load_lora_adapters
+    model = load_model(args.model_path, device, args.load_lora_adapters)
     for p in model.parameters():
         p.requires_grad_(False)
     try:
@@ -787,6 +789,7 @@ def main():
         for task_name, result in results.items():
             print(f"\n{task_name.upper()} TASK:")
             print(json.dumps(result, indent=2))
+        print("saved to", os.path.join(task_dir, "metrics.json"))
         """
         # Save artifacts
         torch.save({
@@ -901,10 +904,10 @@ def main():
         print(json.dumps(metrics_dict, indent=2))
 
         # Save artifacts
-        torch.save({"X_train": Xtr.cpu(), "y_train": ytr.cpu(), "X_eval": Xev.cpu(), "y_eval": yev.cpu()},
-                   os.path.join(mode_save_dir, "embeddings.pt"))
-        torch.save(probe.state_dict(), os.path.join(mode_save_dir, "linear_probe.pt"))
-        print("Saved probe artifacts to", mode_save_dir)
+        #torch.save({"X_train": Xtr.cpu(), "y_train": ytr.cpu(), "X_eval": Xev.cpu(), "y_eval": yev.cpu()},
+        #           os.path.join(mode_save_dir, "embeddings.pt"))
+        #torch.save(probe.state_dict(), os.path.join(mode_save_dir, "linear_probe.pt"))
+        #print("Saved probe artifacts to", mode_save_dir)
 
 if __name__ == "__main__":
     main()
