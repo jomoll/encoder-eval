@@ -59,7 +59,7 @@ from tqdm import tqdm
 from datasets import load_dataset
 from transformers import CLIPModel, CLIPImageProcessor
 
-from sklearn.metrics import accuracy_score, roc_auc_score, balanced_accuracy_score, f1_score, roc_curve
+from sklearn.metrics import accuracy_score, roc_auc_score, balanced_accuracy_score, f1_score, roc_curve, confusion_matrix
 
 # Optional custom vision backbone wrapper from your training script
 try:
@@ -310,15 +310,12 @@ def extract_named_list(ex: Dict[str, Any]) -> List[Dict[str, Any]]:
     return []
 
 def has_triangle_named(ex: Dict[str, Any]) -> int:
-    try:
-        named = extract_named_list(ex)
-        for o in named:
-            shp = str(o.get("shape", "")).lower()
-            if shp == "triangle":
-                return 1
-        return 0
-    except Exception:
-        return 0
+    named = extract_named_list(ex)
+    for o in named:
+        shp = str(o.get("shape", "")).lower()
+        if shp == "triangle":
+            return 1
+    return 0
 
 def build_dataset_with_labels(dataset_id: str,
                               image_processor: CLIPImageProcessor,
@@ -402,7 +399,7 @@ def build_dataset_with_labels(dataset_id: str,
     return ds
 
 # ----------------------------
-# Probe (linear classifier)
+# Probe (linear classifier + MLP)
 # ----------------------------
 
 class LinearProbe(nn.Module):
@@ -411,6 +408,28 @@ class LinearProbe(nn.Module):
         self.fc = nn.Linear(in_dim, 2)
     def forward(self, x):
         return self.fc(x)
+
+class MLPProbe(nn.Module):
+    def __init__(self, in_dim: int, hidden_dims: List[int] = None, dropout: float = 0.1):
+        super().__init__()
+        if hidden_dims is None:
+            hidden_dims = [in_dim // 2, in_dim // 4]
+        
+        layers = []
+        prev_dim = in_dim
+        for hidden_dim in hidden_dims:
+            layers.extend([
+                nn.Linear(prev_dim, hidden_dim),
+                nn.ReLU(),
+                nn.Dropout(dropout)
+            ])
+            prev_dim = hidden_dim
+        layers.append(nn.Linear(prev_dim, 2))
+        
+        self.mlp = nn.Sequential(*layers)
+    
+    def forward(self, x):
+        return self.mlp(x)
 
 # ----------------------------
 # Embedding
@@ -470,15 +489,28 @@ def embed_split(model, loader: DataLoader, device, amp_dtype, task: str):
 # Probe training
 # ----------------------------
 
-def train_probe(Xtr, ytr, epochs=50, lr=5e-3, wd=0.0, device="cpu"):
+def train_probe(Xtr, ytr, epochs=50, lr=5e-3, wd=0.0, device="cpu", probe_type="linear", hidden_dims=None, dropout=0.1, Xval=None, yval=None):
     in_dim = Xtr.shape[1]
-    probe = LinearProbe(in_dim).to(device)
+    
+    if probe_type == "mlp":
+        probe = MLPProbe(in_dim, hidden_dims=hidden_dims, dropout=dropout).to(device)
+    else:  # linear
+        probe = LinearProbe(in_dim).to(device)
+    
     opt = torch.optim.AdamW(probe.parameters(), lr=lr, weight_decay=wd)
     ce = nn.CrossEntropyLoss()
-    probe.train()
+    
+    train_losses = []
+    val_losses = []
+    
     for e in range(epochs):
+        # Training
+        probe.train()
+        epoch_train_loss = 0.0
+        num_batches = 0
         bs = min(4096, Xtr.size(0))
         perm = torch.randperm(Xtr.size(0), device=device)
+        
         for i in range(0, Xtr.size(0), bs):
             idx = perm[i:i+bs]
             logits = probe(Xtr[idx])
@@ -486,8 +518,31 @@ def train_probe(Xtr, ytr, epochs=50, lr=5e-3, wd=0.0, device="cpu"):
             opt.zero_grad(set_to_none=True)
             loss.backward()
             opt.step()
+            epoch_train_loss += loss.item()
+            num_batches += 1
+        
+        avg_train_loss = epoch_train_loss / num_batches
+        train_losses.append(avg_train_loss)
+        
+        # Validation (if provided)
+        if Xval is not None and yval is not None:
+            probe.eval()
+            with torch.no_grad():
+                val_logits = probe(Xval)
+                val_loss = ce(val_logits, yval).item()
+                val_losses.append(val_loss)
+            print(f"Epoch {e+1}/{epochs} - Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        else:
+            print(f"Epoch {e+1}/{epochs} - Train Loss: {avg_train_loss:.4f}")
+
     probe.eval()
-    return probe
+    
+    # Return probe and loss history
+    loss_history = {"train_losses": train_losses}
+    if val_losses:
+        loss_history["val_losses"] = val_losses
+    
+    return probe, loss_history
 
 # ----------------------------
 # Threshold tuning & calibration
@@ -543,7 +598,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset_id", type=str, default="data/silent-heart-dataset")
     ap.add_argument("--model_path", type=str, required=True, help="Path or HF id for the fine-tuned model")
-    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="both")  # Added "both"
+    ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="both")
     ap.add_argument("--split_train", type=str, default="train")
     ap.add_argument("--split_eval", type=str, default="val")
     ap.add_argument("--batch_size", type=int, default=512)
@@ -551,7 +606,7 @@ def main():
     ap.add_argument("--seed", type=int, default=1337)
     ap.add_argument("--cpu", action="store_true")
     ap.add_argument("--amp_dtype", type=str, choices=["fp16","bf16"], default="fp16")
-    ap.add_argument("--epochs", type=int, default=20)
+    ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--lr", type=float, default=5e-3)
     ap.add_argument("--weight_decay", type=float, default=0.0)
     ap.add_argument("--mask_special", action="store_true", help="Mask out the heart region (only for --task heart)")
@@ -559,11 +614,17 @@ def main():
     ap.add_argument("--tune_policy", type=str, choices=["acc","youden","f1"], default="acc")
     ap.add_argument("--calibrate_on", type=str, choices=["none","train","eval"], default="none")
     ap.add_argument("--save_dir", type=str, default="./results/probe_out")
+    ap.add_argument("--probe_type", type=str, choices=["linear", "mlp"], default="linear", 
+                   help="Type of probe: linear or mlp")
+    ap.add_argument("--hidden_dims", type=int, nargs="*", default=None,
+                   help="Hidden dimensions for MLP probe (e.g., --hidden_dims 256 128)")
+    ap.add_argument("--dropout", type=float, default=0.1,
+                   help="Dropout rate for MLP probe")
     args = ap.parse_args()
 
-    # Build save directory: include model basename and task
+    # Build save directory: include model basename, task, and probe type
     model_base = os.path.basename(os.path.normpath(args.model_path))
-    mode_save_dir = os.path.join(args.save_dir, f"{model_base}_task-{args.task}")
+    mode_save_dir = os.path.join(args.save_dir, f"{model_base}_task-{args.task}_probe-{args.probe_type}")
     if args.mask_special and args.task == "heart":
         mode_save_dir += "_masked"
     
@@ -583,7 +644,7 @@ def main():
     # Build datasets and loaders
     ds_train = build_dataset_with_labels(args.dataset_id, processor, split=args.split_train, task=args.task, mask_special=args.mask_special)
     ds_eval  = build_dataset_with_labels(args.dataset_id, processor, split=args.split_eval,  task=args.task, mask_special=args.mask_special)
-
+    
     collate = make_collate_fn(args.task)
     dl_train = DataLoader(ds_train, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers,
                           pin_memory=(device.type=="cuda"), collate_fn=collate)
@@ -594,7 +655,7 @@ def main():
     if args.task == "both":
         Xtr, ytr_dict = embed_split(model, dl_train, device, amp_dtype, args.task)
         Xev, yev_dict = embed_split(model, dl_eval, device, amp_dtype, args.task)
-        
+
         # Convert embeddings to float32
         Xtr = Xtr.float().to(device)
         Xev = Xev.float().to(device)
@@ -606,18 +667,22 @@ def main():
         yev_triangle = yev_dict["triangle"].to(device)
         
         # Train two separate probes
-        print("Training heart probe...")
-        probe_heart = train_probe(Xtr, ytr_heart, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
+        print(f"Training heart {args.probe_type} probe...")
+        probe_heart, loss_hist_heart = train_probe(Xtr, ytr_heart, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, 
+                                device=device, probe_type=args.probe_type, hidden_dims=args.hidden_dims, 
+                                dropout=args.dropout, Xval=Xev, yval=yev_heart)
         
-        print("Training triangle probe...")
-        probe_triangle = train_probe(Xtr, ytr_triangle, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
+        print(f"Training triangle {args.probe_type} probe...")
+        probe_triangle, loss_hist_triangle = train_probe(Xtr, ytr_triangle, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, 
+                                   device=device, probe_type=args.probe_type, hidden_dims=args.hidden_dims, 
+                                   dropout=args.dropout, Xval=Xev, yval=yev_triangle)
         
         # Evaluate both probes
         results = {}
         
-        for task_name, probe, ytr_task, yev_task in [
-            ("heart", probe_heart, ytr_heart, yev_heart),
-            ("triangle", probe_triangle, ytr_triangle, yev_triangle)
+        for task_name, probe, ytr_task, yev_task, loss_hist in [
+            ("heart", probe_heart, ytr_heart, yev_heart, loss_hist_heart),
+            ("triangle", probe_triangle, ytr_triangle, yev_triangle, loss_hist_triangle)
         ]:
             print(f"\nEvaluating {task_name} probe...")
             
@@ -653,16 +718,22 @@ def main():
                 best_ref = "eval"
             
             # Metrics
-            auc = roc_auc_score(yev_task.cpu().numpy(), p_ev)
+            y_true = yev_task.cpu().numpy()
+            auc = roc_auc_score(y_true, p_ev)
             pred_default = (p_ev >= 0.5).astype(int)
             pred_argmax  = logits_ev.argmax(dim=1).numpy()
             pred_best    = (p_ev >= best_thr).astype(int)
             
-            acc_default = accuracy_score(yev_task.cpu().numpy(), pred_default)
-            acc_argmax  = accuracy_score(yev_task.cpu().numpy(), pred_argmax)
-            acc_best    = accuracy_score(yev_task.cpu().numpy(), pred_best)
-            bal_acc     = balanced_accuracy_score(yev_task.cpu().numpy(), pred_best)
-            f1          = f1_score(yev_task.cpu().numpy(), pred_best)
+            acc_default = accuracy_score(y_true, pred_default)
+            acc_argmax  = accuracy_score(y_true, pred_argmax)
+            acc_best    = accuracy_score(y_true, pred_best)
+            bal_acc     = balanced_accuracy_score(y_true, pred_best)
+            f1          = f1_score(y_true, pred_best)
+            
+            # Confusion matrices
+            cm_default = confusion_matrix(y_true, pred_default).tolist()
+            cm_argmax = confusion_matrix(y_true, pred_argmax).tolist()
+            cm_best = confusion_matrix(y_true, pred_best).tolist()
             
             results[task_name] = {
                 "task": task_name,
@@ -676,23 +747,28 @@ def main():
                 "f1": float(f1),
                 "temperature": float(T_fit),
                 "n_train": int(len(ds_train)),
-                "n_eval": int(len(ds_eval))
+                "n_eval": int(len(ds_eval)),
+                "confusion_matrix_default": cm_default,
+                "confusion_matrix_argmax": cm_argmax,
+                "confusion_matrix_best": cm_best
             }
-        
+            # Add loss history to results
+            results[task_name].update(loss_hist)
+
         # Save results
         os.makedirs(mode_save_dir, exist_ok=True)
         
         # Save combined results
         with open(os.path.join(mode_save_dir, "metrics_both.json"), "w") as f:
-            json.dump(results, f, indent=2)
+            json.dump(results, f, indent=2, separators=(',', ': '))
         
         # Save individual results for compatibility
         for task_name, result in results.items():
             task_dir = os.path.join(mode_save_dir, f"{task_name}_results")
             os.makedirs(task_dir, exist_ok=True)
             with open(os.path.join(task_dir, "metrics.json"), "w") as f:
-                json.dump(result, f, indent=2)
-        
+                json.dump(result, f, indent=2, separators=(',', ': '))
+
         print("\n" + "="*50)
         print("BOTH TASKS RESULTS:")
         print("="*50)
@@ -726,8 +802,10 @@ def main():
         Xtr = Xtr.float().to(device); ytr = ytr.to(device)
         Xev = Xev.float().to(device); yev = yev.to(device)
 
-        # Train linear probe
-        probe = train_probe(Xtr, ytr, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, device=device)
+        # Train probe
+        probe, loss_hist = train_probe(Xtr, ytr, epochs=args.epochs, lr=args.lr, wd=args.weight_decay, 
+                          device=device, probe_type=args.probe_type, hidden_dims=args.hidden_dims, 
+                          dropout=args.dropout, Xval=Xev, yval=yev)
 
         # Collect logits on splits
         probe.eval()
@@ -761,35 +839,27 @@ def main():
             best_ref = "eval"
 
         # Metrics (eval split)
-        auc = roc_auc_score(yev.cpu().numpy(), p_ev)
+        y_true = yev.cpu().numpy()
+        auc = roc_auc_score(y_true, p_ev)
         pred_default = (p_ev >= 0.5).astype(int)
         pred_argmax  = logits_ev.argmax(dim=1).numpy()
         pred_best    = (p_ev >= best_thr).astype(int)
 
-        acc_default = accuracy_score(yev.cpu().numpy(), pred_default)
-        acc_argmax  = accuracy_score(yev.cpu().numpy(), pred_argmax)
-        acc_best    = accuracy_score(yev.cpu().numpy(), pred_best)
-        bal_acc     = balanced_accuracy_score(yev.cpu().numpy(), pred_best)
-        f1          = f1_score(yev.cpu().numpy(), pred_best)
+        acc_default = accuracy_score(y_true, pred_default)
+        acc_argmax  = accuracy_score(y_true, pred_argmax)
+        acc_best    = accuracy_score(y_true, pred_best)
+        bal_acc     = balanced_accuracy_score(y_true, pred_best)
+        f1          = f1_score(y_true, pred_best)
+
+        # Confusion matrices
+        cm_default = confusion_matrix(y_true, pred_default).tolist()
+        cm_argmax = confusion_matrix(y_true, pred_argmax).tolist()
+        cm_best = confusion_matrix(y_true, pred_best).tolist()
 
         os.makedirs(mode_save_dir, exist_ok=True)
-        with open(os.path.join(mode_save_dir, "metrics.json"), "w") as f:
-            json.dump({
-                "task": args.task,
-                "eval_auc": float(auc),
-                "eval_acc_default@0.5": float(acc_default),
-                "eval_acc_argmax": float(acc_argmax),
-                "eval_acc_best": float(acc_best),
-                "best_threshold": float(best_thr),
-                "threshold_ref": best_ref,
-                "balanced_accuracy": float(bal_acc),
-                "f1": float(f1),
-                "temperature": float(T_fit),
-                "n_train": int(len(ds_train)),
-                "n_eval": int(len(ds_eval))
-            }, f, indent=2)
-        print(json.dumps({
+        metrics_dict = {
             "task": args.task,
+            "probe_type": args.probe_type,
             "eval_auc": float(auc),
             "eval_acc_default@0.5": float(acc_default),
             "eval_acc_argmax": float(acc_argmax),
@@ -800,8 +870,23 @@ def main():
             "f1": float(f1),
             "temperature": float(T_fit),
             "n_train": int(len(ds_train)),
-            "n_eval": int(len(ds_eval))
-        }, indent=2))
+            "n_eval": int(len(ds_eval)),
+            "confusion_matrix_default": cm_default,
+            "confusion_matrix_argmax": cm_argmax,
+            "confusion_matrix_best": cm_best
+        }
+        
+        # Add loss history to metrics
+        metrics_dict.update(loss_hist)
+        
+        if args.probe_type == "mlp":
+            metrics_dict["hidden_dims"] = args.hidden_dims
+            metrics_dict["dropout"] = args.dropout
+            
+        with open(os.path.join(mode_save_dir, "metrics.json"), "w") as f:
+            json.dump(metrics_dict, f, indent=2, separators=(',', ': '))
+            
+        print(json.dumps(metrics_dict, indent=2))
 
         # Save artifacts
         torch.save({"X_train": Xtr.cpu(), "y_train": ytr.cpu(), "X_eval": Xev.cpu(), "y_eval": yev.cpu()},
