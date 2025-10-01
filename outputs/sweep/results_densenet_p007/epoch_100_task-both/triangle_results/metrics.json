@@ -1,0 +1,14 @@
+{
+  "task": "triangle",
+  "eval_auc": 0.9988155737656266,
+  "eval_acc_default@0.5": 0.9985,
+  "eval_acc_argmax": 0.9985,
+  "eval_acc_best": 0.99875,
+  "best_threshold": 0.26348650455474854,
+  "threshold_ref": "eval",
+  "balanced_accuracy": 0.9979270315091211,
+  "f1": 0.9979227253842958,
+  "temperature": 1.0,
+  "n_train": 400000,
+  "n_eval": 4000
+}
