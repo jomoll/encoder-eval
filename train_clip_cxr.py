@@ -803,7 +803,7 @@ def build_loaders(ds, tokenizer, image_processor, args, device):
     if "val" in ds:
         val_loader = DataLoader(
             ds["val"], batch_size=args.eval_batch_size or args.batch_size, shuffle=False,
-            num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate,  num_workers=1
+            num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate
         )
     return train_loader, val_loader
 
