@@ -230,8 +230,8 @@ def build_datasets(dataset_id: str,
         # Handle batched dict from HF datasets
         out = {"input_ids": [], "attention_mask": [], "pixel_values": []}
         if args.findings:
-            is_batched = isinstance(examples["findings_no_pleura_no_lungs_no_cardio_no_tubes_no_other_no_musculoskeletal"], list)
-            captions = examples["findings_no_pleura_no_lungs_no_cardio_no_tubes_no_other_no_musculoskeletal"] if is_batched else [examples["findings_no_pleura_no_lungs_no_cardio_no_tubes_no_other_no_musculoskeletal"]]
+            is_batched = isinstance(examples["findings_no_pleura_no_lungs_no_cardio"], list)
+            captions = examples["findings_no_pleura_no_lungs_no_cardio"] if is_batched else [examples["findings_no_pleura_no_lungs_no_cardio"]]
         else:
             is_batched = isinstance(examples["impression_section"], list)
             captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
@@ -270,8 +270,8 @@ def build_datasets(dataset_id: str,
     def _prepare_eval(examples):
         out = {"input_ids": [], "attention_mask": [], "pixel_values": []}
         if args.findings:
-            is_batched = isinstance(examples["findings_no_pleura_no_lungs_no_cardio_no_tubes_no_other_no_musculoskeletal"], list)
-            captions = examples["findings_no_pleura_no_lungs_no_cardio_no_tubes_no_other_no_musculoskeletal"] if is_batched else [examples["findings_no_pleura_no_lungs_no_cardio_no_tubes_no_other_no_musculoskeletal"]]
+            is_batched = isinstance(examples["findings_no_pleura_no_lungs_no_cardio"], list)
+            captions = examples["findings_no_pleura_no_lungs_no_cardio"] if is_batched else [examples["findings_no_pleura_no_lungs_no_cardio"]]
         else:
             is_batched = isinstance(examples["impression_section"], list)
             captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
@@ -796,7 +796,7 @@ def build_loaders(ds, tokenizer, image_processor, args, device):
     
     train_loader = DataLoader(
         ds["train"], batch_size=args.batch_size, shuffle=True,
-        num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate, drop_last=True, num_workers=1
+        num_workers=args.num_workers, pin_memory=(device.type=="cuda"), collate_fn=collate, drop_last=True
     )
     # Val loader
     val_loader = None
