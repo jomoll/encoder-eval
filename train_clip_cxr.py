@@ -230,8 +230,9 @@ def build_datasets(dataset_id: str,
         # Handle batched dict from HF datasets
         out = {"input_ids": [], "attention_mask": [], "pixel_values": []}
         if args.findings:
-            is_batched = isinstance(examples["findings_no_pleura_no_lungs_no_cardio"], list)
-            captions = examples["findings_no_pleura_no_lungs_no_cardio"] if is_batched else [examples["findings_no_pleura_no_lungs_no_cardio"]]
+            is_batched = isinstance(examples["findings_section"], list)
+            captions = examples["findings_section"] if is_batched else [examples["findings_section"]]
+            print("using findings")
         else:
             is_batched = isinstance(examples["impression_section"], list)
             captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
@@ -270,8 +271,8 @@ def build_datasets(dataset_id: str,
     def _prepare_eval(examples):
         out = {"input_ids": [], "attention_mask": [], "pixel_values": []}
         if args.findings:
-            is_batched = isinstance(examples["findings_no_pleura_no_lungs_no_cardio"], list)
-            captions = examples["findings_no_pleura_no_lungs_no_cardio"] if is_batched else [examples["findings_no_pleura_no_lungs_no_cardio"]]
+            is_batched = isinstance(examples["findings_section"], list)
+            captions = examples["findings_section"] if is_batched else [examples["findings_section"]]
         else:
             is_batched = isinstance(examples["impression_section"], list)
             captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
