@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # train_ssl_hf.py
 """
-MAE and DINO training on a Hugging Face dataset with columns:
+MAE, DINO, and SimCLR training on a Hugging Face dataset with columns:
   image: PIL.Image or numpy array
   captions: string (unused here)
 
@@ -13,6 +13,7 @@ from pathlib import Path
 from tqdm import tqdm
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
@@ -28,17 +29,18 @@ except Exception as e:
 # DINO parts
 try:
     from lightly.data.multi_view_collate import MultiViewCollate
-    from lightly.transforms.utils import IMAGENET_NORMALIZE
     from lightly.loss import DINOLoss as LightlyDINOLoss
     _has_lightly = True
 except Exception:
     _has_lightly = False
+DATASET_MEAN = [0.059694131803847264, 0.059694131803847264, 0.059694131803847264]
+DATASET_STD  = [0.13760218836122498, 0.13760218836122498, 0.13760218836122498]
 
 
 # ------------------ args ------------------
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--mode", choices=["mae", "dino"], required=True)
+    p.add_argument("--mode", choices=["mae", "dino", "simclr"], required=True)
     p.add_argument("--data", type=str, required=True, help="datasets.load_dataset name or path")
     p.add_argument("--split", type=str, default="train")
     p.add_argument("--out", type=str, required=True)
@@ -54,6 +56,9 @@ def parse_args():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--image_col", type=str, default="image")
     p.add_argument("--caption_col", type=str, default="captions")
+    # SimCLR specific
+    p.add_argument("--temperature", type=float, default=0.07, help="SimCLR temperature")
+    p.add_argument("--proj_dim", type=int, default=128, help="SimCLR projection dimension")
     return p.parse_args()
 
 
@@ -66,7 +71,7 @@ def set_seed(seed):
 class HFViewsDataset(torch.utils.data.Dataset):
     """
     Wraps a HF dataset and applies a transform that returns either a single tensor (MAE)
-    or a list of tensors (DINO multi-crop). Captions are ignored.
+    or a list of tensors (DINO/SimCLR multi-crop). Captions are ignored.
     """
     def __init__(self, hf_ds, image_col, transform):
         self.ds = hf_ds
@@ -81,9 +86,9 @@ class HFViewsDataset(torch.utils.data.Dataset):
         img = ex[self.image_col]
         transformed = self.transform(img)
         
-        # For DINO mode with MultiViewCollate, return (views, label, filename)
+        # For DINO/SimCLR mode with MultiViewCollate, return (views, label, filename)
         # For MAE mode, return (tensor, label)
-        if isinstance(transformed, list):  # DINO multi-crop
+        if isinstance(transformed, list):  # DINO/SimCLR multi-crop
             return transformed, 0, f"sample_{i}"  # views, label, filename
         else:  # MAE single tensor
             return transformed, 0  # tensor, label
@@ -101,6 +106,7 @@ def build_mae_transform(img_size):
 class MultiCropTransform:
     def __init__(self, img_size, n_global=2, n_local=0):  # Set n_local=0
         self.n_global, self.n_local = n_global, n_local
+        norm = T.Normalize(mean=DATASET_MEAN, std=DATASET_STD) 
         self.global_t = T.Compose([
             T.RandomResizedCrop(img_size, scale=(0.4, 1.0)),
             T.RandomHorizontalFlip(),
@@ -109,13 +115,37 @@ class MultiCropTransform:
             T.GaussianBlur(23, sigma=(0.1, 2.0)),
             T.Lambda(lambda x: x.convert('RGB') if hasattr(x, 'convert') else x),  # ensure RGB before ToTensor
             T.ToTensor(),
-            T.Normalize(**IMAGENET_NORMALIZE),
+            norm,
         ])
 
     def __call__(self, img):
         crops = [self.global_t(img) for _ in range(self.n_global)]
         # No local crops to avoid size mismatch
         return crops
+
+
+class SimCLRTransform:
+    """SimCLR augmentation pipeline that returns two augmented views"""
+    def __init__(self, img_size=224):
+        # Ensure kernel size is odd and at least 3
+        kernel_size = int(0.1 * img_size)
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+        kernel_size = max(kernel_size, 3)
+        norm = T.Normalize(mean=DATASET_MEAN, std=DATASET_STD)
+        self.transform = T.Compose([
+            T.RandomResizedCrop(img_size, scale=(0.08, 1.0)),
+            T.RandomHorizontalFlip(p=0.5),
+            T.RandomApply([T.ColorJitter(0.8, 0.8, 0.8, 0.2)], p=0.8),
+            T.RandomGrayscale(p=0.2),
+            T.GaussianBlur(kernel_size=kernel_size, sigma=(0.1, 2.0)),
+            T.Lambda(lambda x: x.convert('RGB') if hasattr(x, 'convert') else x),
+            T.ToTensor(),
+            norm,
+        ])
+
+    def __call__(self, img):
+        return [self.transform(img), self.transform(img)]
 
 
 # ------------------ MAE Implementation ------------------
@@ -313,6 +343,68 @@ class MAEWrapper(nn.Module):
         return self.encoder
 
 
+# ------------------ SimCLR ------------------
+class SimCLRModel(nn.Module):
+    """SimCLR model with backbone + projection head"""
+    def __init__(self, model_name="resnet50", proj_dim=128):
+        super().__init__()
+        self.backbone = timm.create_model(model_name, pretrained=False, num_classes=0)
+        feat_dim = self.backbone.num_features
+        
+        # Projection head: 2-layer MLP with ReLU
+        self.projection_head = nn.Sequential(
+            nn.Linear(feat_dim, feat_dim),
+            nn.ReLU(),
+            nn.Linear(feat_dim, proj_dim)
+        )
+    
+    def forward(self, x):
+        h = self.backbone(x)
+        z = self.projection_head(h)
+        return F.normalize(z, dim=1)  # L2 normalize
+
+
+class SimCLRLoss(nn.Module):
+    """NT-Xent (Normalized Temperature-scaled Cross Entropy) Loss for SimCLR"""
+    def __init__(self, temperature=0.07):
+        super().__init__()
+        self.temperature = temperature
+        
+    def forward(self, z):
+        """
+        z: [2*batch_size, proj_dim] - concatenated projections from two views
+        """
+        batch_size = z.shape[0] // 2
+        
+        # Compute similarity matrix
+        sim_matrix = torch.mm(z, z.T) / self.temperature
+        
+        # Create masks for positive pairs
+        # Positive pairs are (i, i+batch_size) and (i+batch_size, i)
+        mask = torch.zeros_like(sim_matrix, dtype=torch.bool)
+        mask.fill_diagonal_(True)  # Remove self-similarities
+        
+        # Create positive mask
+        pos_mask = torch.zeros_like(sim_matrix, dtype=torch.bool)
+        for i in range(batch_size):
+            pos_mask[i, i + batch_size] = True
+            pos_mask[i + batch_size, i] = True
+        
+        # Remove diagonal (self-similarities) from similarity matrix
+        sim_matrix = sim_matrix[~mask].view(sim_matrix.shape[0], -1)
+        pos_mask = pos_mask[~mask].view(pos_mask.shape[0], -1)
+        
+        # Compute loss
+        pos_sim = sim_matrix[pos_mask].view(-1, 1)
+        neg_sim = sim_matrix[~pos_mask].view(sim_matrix.shape[0], -1)
+        
+        # Concatenate positive and negative similarities
+        logits = torch.cat([pos_sim, neg_sim], dim=1)
+        labels = torch.zeros(logits.shape[0], dtype=torch.long, device=logits.device)
+        
+        return F.cross_entropy(logits, labels)
+
+
 # ------------------ DINO ------------------
 def build_dino_student_teacher(model_name="vit_small_patch16_224"):
     # backbone that returns features
@@ -418,6 +510,54 @@ def main():
             ckpt = save_backbone(out, epoch, "mae", model.backbone())
             print(f"[{epoch:03d}] MAE loss={avg_loss:.4f} saved={ckpt}")
 
+    elif args.mode == "simclr":
+        transform = SimCLRTransform(args.img_size)
+        ds = HFViewsDataset(hf_ds, args.image_col, transform)
+        collate_fn = MultiViewCollate()
+        dl = DataLoader(ds, batch_size=args.batch_size, shuffle=True, num_workers=args.workers, 
+                       pin_memory=True, drop_last=True, collate_fn=collate_fn)
+        
+        model_name = args.model or "resnet50"
+        model = SimCLRModel(model_name=model_name, proj_dim=args.proj_dim).to(device)
+        print(f"Built SimCLR model with backbone: {model_name}, proj_dim: {args.proj_dim}")
+        
+        lr = args.lr or 3e-4
+        opt = optim.AdamW(model.parameters(), lr=lr, weight_decay=args.wd)
+        loss_fn = SimCLRLoss(temperature=args.temperature)
+        
+        print(f"Starting SimCLR training for {args.epochs} epochs...")
+        for epoch in tqdm(range(1, args.epochs + 1), desc="Training Epochs"):
+            model.train()
+            cosine_lr(opt, lr, epoch-1, args.epochs)
+            loss_sum, n = 0.0, 0
+            
+            pbar = tqdm(dl, desc=f"Epoch {epoch}")
+            for views, _, _ in pbar:
+                # views is a list of 2 tensors [batch_size, 3, H, W]
+                views = [v.to(device, non_blocking=True) for v in views]
+                
+                # Get projections for both views
+                z1 = model(views[0])  # [batch_size, proj_dim]
+                z2 = model(views[1])  # [batch_size, proj_dim]
+                
+                # Concatenate for NT-Xent loss
+                z = torch.cat([z1, z2], dim=0)  # [2*batch_size, proj_dim]
+                
+                loss = loss_fn(z)
+                (loss / args.accum).backward()
+                
+                if (n + 1) % args.accum == 0:
+                    opt.step()
+                    opt.zero_grad(set_to_none=True)
+                
+                loss_sum += loss.item()
+                n += 1
+                pbar.set_postfix({'loss': f'{loss.item():.4f}'})
+                
+            avg_loss = loss_sum / n
+            ckpt = save_backbone(out, epoch, "simclr", model.backbone)
+            print(f"[{epoch:03d}] SimCLR loss={avg_loss:.4f} saved={ckpt}")
+
     else:  # DINO
         if not _has_lightly:
             raise ImportError("pip install lightly-ai")
@@ -454,9 +594,9 @@ def main():
                     opt.step(); opt.zero_grad(set_to_none=True)
                 update_ema(teacher, student, 0.996)
                 loss_sum += loss.item(); n += 1
-            print(f"DINO epoch {epoch:3d} loss {loss_sum/n:.4f}")
-            if epoch % 10 == 0:
-                save_backbone(out, epoch, "dino", student[0])
+            avg_loss = loss_sum / n
+            ckpt = save_backbone(out, epoch, "dino", student[0])
+            print(f"[{epoch:03d}] DINO loss={avg_loss:.4f} saved={ckpt}")
 
 
 if __name__ == "__main__":
