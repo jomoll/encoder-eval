@@ -15,33 +15,40 @@ def collect_auc_data(base_path):
     triangle_aucs = []
     marker_aucs = []
     effusion_aucs = []
-    # Pattern to match epoch folders
-    epoch_pattern = re.compile(r'epoch_(\d+)_task-both$')
+    # Updated patterns to handle different prefixes (e.g., simclr_epoch001, dino_epoch001)
+    epoch_pattern = re.compile(r'epoch_(\d+)_task-both$')  # Original for "epoch_1_task-both"
+    epoch_pattern2 = re.compile(r'^epoch_(\d+)$')  # Original for "epoch_1"
+    epoch_pattern3 = re.compile(r'^(simclr|dino|mae)_epoch(\d+)$')  # New: matches "simclr_epoch_001", etc.
     
     # Get all directories in the base path
     for folder_name in os.listdir(base_path):
         folder_path = os.path.join(base_path, folder_name)
         
-        # Check if it's a directory and matches the epoch pattern
-        if os.path.isdir(folder_path) and epoch_pattern.match(folder_name):
-            # Extract epoch number
-            match = epoch_pattern.match(folder_name)
-            epoch_num = int(match.group(1))
-            
-            # Check if metrics_both.json exists
+        # Check if it's a directory and matches any epoch pattern
+        epoch_num = None
+        if os.path.isdir(folder_path):
+            match = epoch_pattern.match(folder_name) or epoch_pattern2.match(folder_name) or epoch_pattern3.match(folder_name)
+            if match:
+                # Extract epoch number (group 1 for first two patterns, group 2 for the third)
+                if epoch_pattern3.match(folder_name):
+                    epoch_num = int(match.group(2))  # For "simclr_epoch_001", group 2 is "001"
+                else:
+                    epoch_num = int(match.group(1))  # For others, group 1 is the epoch
+        if epoch_num is not None:
+            # Check for metrics files
+            metrics_file = None
             if os.path.exists(os.path.join(folder_path, 'all_metrics.json')):
                 metrics_file = os.path.join(folder_path, 'all_metrics.json')
             elif os.path.exists(os.path.join(folder_path, 'metrics_both.json')):
                 metrics_file = os.path.join(folder_path, 'metrics_both.json')
-            else:
-                print(f"metrics file not found in {folder_path}")
+            
             try:
                 with open(metrics_file, 'r') as f:
                     data = json.load(f)
                 try:
                     # Extract AUC values
-                    heart_auc = data['heart']['eval_auc']
-                    triangle_auc = data['triangle']['eval_auc']
+                    heart_auc = data['heart']['auc']
+                    triangle_auc = data['triangle']['auc']
                     heart_aucs.append(heart_auc)
                     triangle_aucs.append(triangle_auc)
                     marker_aucs.append(0.0)

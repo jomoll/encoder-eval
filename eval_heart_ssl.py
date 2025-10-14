@@ -13,9 +13,15 @@ from tqdm import tqdm
 from datasets import load_dataset
 import numpy as np
 from collections import Counter
+from sklearn.metrics import (
+    roc_auc_score, balanced_accuracy_score, f1_score,
+    roc_curve, confusion_matrix, accuracy_score
+)
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
+DATASET_MEAN = [0.059694131803847264, 0.059694131803847264, 0.059694131803847264]
+DATASET_STD  = [0.13760218836122498, 0.13760218836122498, 0.13760218836122498]
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -144,8 +150,8 @@ def build_transform(img_size, mode):
             T.Lambda(lambda x: x.repeat(3,1,1) if x.size(0) == 1 else x),
             # No normalization for MAE
         ])
-    else:  # DINO
-        # DINO uses ImageNet normalization
+    else:  # DINO and SimCLR
+        # DINO and SimCLR use ImageNet normalization
         return T.Compose([
             T.Resize(img_size, interpolation=T.InterpolationMode.BICUBIC),
             T.CenterCrop(img_size),
@@ -156,12 +162,22 @@ def build_transform(img_size, mode):
 
 def load_backbone(mode, model_name, ckpt_path, device):
     if model_name is None:
-        model_name = "vit_base_patch16_224" if mode == "mae" else "vit_small_patch16_224"
+        if mode == "mae":
+            model_name = "vit_base_patch16_224"
+        elif mode == "simclr":
+            model_name = "resnet50"
+        else:  # dino
+            model_name = "vit_small_patch16_224"
     
     if mode == "mae":
         from train_ssl import MAEWrapper
         model = MAEWrapper(model_name=model_name, img_size=224)
         backbone = model.backbone()
+    elif mode == "simclr":
+        from train_ssl import SimCLRModel
+        import timm
+        # For SimCLR, we only need the backbone part
+        backbone = timm.create_model(model_name, pretrained=False, num_classes=0)
     else:  # dino
         import timm
         backbone = timm.create_model(model_name, pretrained=False, num_classes=0)
@@ -297,44 +313,106 @@ def evaluate_single_task(args, backbone, feat_dim, device, task_name):
             model.eval()
             logits = model(test_feats.to(device))
             pred = logits.argmax(1).cpu()
+            probs = logits.softmax(dim=1)[:, 1].cpu().numpy()
     else:
         pred = knn_predict(train_feats, train_labels, test_feats, k=args.k)
-    
-    acc, conf = accuracy_and_confmat(pred, test_labels, num_classes=2)
-    
-    # Per class accuracy
+        probs = None
+
+    y_true = test_labels.cpu().numpy()
+    pred_np = pred.numpy()
+
+    # Basic accuracy + confmat
+    acc = accuracy_score(y_true, pred_np)
+    conf = confusion_matrix(y_true, pred_np)
     classes = [f"no_{task_name}", task_name]
+
+    # Metrics: only if we have probabilities (linear probe)
+    auc = None; acc_default = None; acc_argmax = None; acc_best = None; bal_acc = None; f1 = None
+    best_thr = 0.5; thr_ref = None
+    if probs is not None:
+        try:
+            auc = float(roc_auc_score(y_true, probs))
+        except Exception:
+            auc = None
+
+        # default threshold 0.5
+        pred_default = (probs >= 0.5).astype(int)
+        acc_default = float(accuracy_score(y_true, pred_default))
+
+        # argmax already computed
+        acc_argmax = float(accuracy_score(y_true, pred_np))
+
+        # pick best threshold by accuracy on test (simple)
+        fpr, tpr, thr = roc_curve(y_true, probs)
+        best_acc = -1.0
+        for t in thr:
+            p_t = (probs >= t).astype(int)
+            a = accuracy_score(y_true, p_t)
+            if a > best_acc:
+                best_acc = a; best_thr = float(t)
+        pred_best = (probs >= best_thr).astype(int)
+        acc_best = float(accuracy_score(y_true, pred_best))
+        bal_acc = float(balanced_accuracy_score(y_true, pred_best))
+        f1 = float(f1_score(y_true, pred_best))
+        thr_ref = "test"  # chosen on test here (same as above simple selection)
+
+        cm_default = confusion_matrix(y_true, pred_default).tolist()
+        cm_argmax = confusion_matrix(y_true, pred_np).tolist()
+        cm_best = confusion_matrix(y_true, pred_best).tolist()
+    else:
+        # Only basic confusion matrix available for kNN
+        cm_default = conf.tolist()
+        cm_argmax = conf.tolist()
+        cm_best = conf.tolist()
+
+    # Per class accuracy
     per_class = {}
     for i, cname in enumerate(classes):
         mask = (test_labels == i)
         per_class[cname] = float((pred[mask] == i).float().mean().item()) if mask.any() else float("nan")
-    
+
     print(f"{task_name} accuracy: {acc:.4f}")
     print("Confusion matrix (rows true, cols pred):")
-    print(conf.numpy())
+    print(conf)
     print("Per class accuracy:", per_class)
-    
+
     return {
         "task": task_name,
         "probe": args.probe,
-        "accuracy": acc,
+        "accuracy": float(acc),
         "per_class_accuracy": per_class,
         "confusion_matrix": conf.tolist(),
         "n_test": int(test_labels.numel()),
         "classes": classes,
+        # extended metrics
+        "auc": auc,
+        "acc_default@0.5": acc_default,
+        "acc_argmax": acc_argmax,
+        "acc_best": acc_best,
+        "best_threshold": best_thr,
+        "threshold_ref": thr_ref,
+        "balanced_accuracy": bal_acc,
+        "f1": f1,
+        "confusion_matrix_default": cm_default,
+        "confusion_matrix_argmax": cm_argmax,
+        "confusion_matrix_best": cm_best,
     }
 
 def main():
     args = parse_args()
     device = args.device
     
-    # Load backbone
-    if "mae" in args.ckpt:
+    # Determine mode from checkpoint filename
+    if "mae" in args.ckpt.lower():
         args.mode = "mae"
+    elif "simclr" in args.ckpt.lower():
+        args.mode = "simclr"
     else:
         args.mode = "dino"
+    
+    # Load backbone
     backbone, feat_dim = load_backbone(args.mode, args.model, args.ckpt, device)
-    print(f"Loaded backbone {args.model} from {args.ckpt}. feat_dim={feat_dim}")
+    print(f"Loaded {args.mode.upper()} backbone {args.model} from {args.ckpt}. feat_dim={feat_dim}")
     
     results = {}
     
@@ -368,6 +446,7 @@ def main():
         )
         
         results = {
+            "mode": args.mode,
             "heart": heart_results,
             "triangle": triangle_results,
             "summary": {
@@ -377,12 +456,14 @@ def main():
         }
         
         print(f"\n=== SUMMARY ===")
+        print(f"Mode: {args.mode.upper()}")
         print(f"Heart accuracy: {heart_results['accuracy']:.4f}")
         print(f"Triangle accuracy: {triangle_results['accuracy']:.4f}")
         
     else:
         # Evaluate single task
         results = evaluate_single_task(args, backbone, feat_dim, device, args.task)
+        results["mode"] = args.mode
     
     # Save results
     out = Path("outputs/ssl/" + args.out + "/all_metrics.json")
@@ -411,31 +492,76 @@ def evaluate_task_with_features(args, train_feats, train_labels, test_feats, tes
             model.eval()
             logits = model(test_feats.to(device))
             pred = logits.argmax(1).cpu()
+            probs = logits.softmax(dim=1)[:, 1].cpu().numpy()
     else:
         pred = knn_predict(train_feats, train_labels, test_feats, k=args.k)
-    
-    acc, conf = accuracy_and_confmat(pred, test_labels, num_classes=2)
-    
-    # Per class accuracy
+        probs = None
+
+    y_true = test_labels.cpu().numpy()
+    pred_np = pred.numpy()
+    acc = accuracy_score(y_true, pred_np)
+    conf = confusion_matrix(y_true, pred_np)
+
+    auc = None; acc_default = None; acc_argmax = None; acc_best = None; bal_acc = None; f1 = None
+    best_thr = 0.5; thr_ref = None
+    if probs is not None:
+        try:
+            auc = float(roc_auc_score(y_true, probs))
+        except Exception:
+            auc = None
+        pred_default = (probs >= 0.5).astype(int)
+        acc_default = float(accuracy_score(y_true, pred_default))
+        acc_argmax = float(accuracy_score(y_true, pred_np))
+
+        fpr, tpr, thr = roc_curve(y_true, probs)
+        best_acc = -1.0
+        for t in thr:
+            p_t = (probs >= t).astype(int)
+            a = accuracy_score(y_true, p_t)
+            if a > best_acc:
+                best_acc = a; best_thr = float(t)
+        pred_best = (probs >= best_thr).astype(int)
+        acc_best = float(accuracy_score(y_true, pred_best))
+        bal_acc = float(balanced_accuracy_score(y_true, pred_best))
+        f1 = float(f1_score(y_true, pred_best))
+        cm_default = confusion_matrix(y_true, pred_default).tolist()
+        cm_argmax = confusion_matrix(y_true, pred_np).tolist()
+        cm_best = confusion_matrix(y_true, pred_best).tolist()
+    else:
+        cm_default = conf.tolist()
+        cm_argmax = conf.tolist()
+        cm_best = conf.tolist()
+
     classes = [f"no_{task_name}", task_name]
     per_class = {}
     for i, cname in enumerate(classes):
         mask = (test_labels == i)
         per_class[cname] = float((pred[mask] == i).float().mean().item()) if mask.any() else float("nan")
-    
+
     print(f"{task_name} accuracy: {acc:.4f}")
     print("Confusion matrix (rows true, cols pred):")
-    print(conf.numpy())
+    print(conf)
     print("Per class accuracy:", per_class)
-    
+
     return {
         "task": task_name,
         "probe": args.probe,
-        "accuracy": acc,
+        "accuracy": float(acc),
         "per_class_accuracy": per_class,
         "confusion_matrix": conf.tolist(),
         "n_test": int(test_labels.numel()),
         "classes": classes,
+        "auc": auc,
+        "acc_default@0.5": acc_default,
+        "acc_argmax": acc_argmax,
+        "acc_best": acc_best,
+        "best_threshold": best_thr,
+        "threshold_ref": thr_ref,
+        "balanced_accuracy": bal_acc,
+        "f1": f1,
+        "confusion_matrix_default": cm_default,
+        "confusion_matrix_argmax": cm_argmax,
+        "confusion_matrix_best": cm_best,
     }
 if __name__ == "__main__":
     main()

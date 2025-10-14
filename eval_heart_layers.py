@@ -274,19 +274,54 @@ class RFFProbe(nn.Module):
         self.fc  = nn.Linear(num_features, 2)
     def forward(self, x): return self.fc(self.map(x))
 
-def train_probe_head(Xtr, ytr, probe: nn.Module, epochs=20, lr=5e-3, wd=0.0, device="cpu"):
+def train_probe_head(Xtr, ytr, probe: nn.Module, epochs=20, lr=5e-3, wd=0.0, device="cpu", Xval=None, yval=None):
     ce = nn.CrossEntropyLoss()
     opt = torch.optim.AdamW(probe.parameters(), lr=lr, weight_decay=wd)
     probe.train()
     bs = min(4096, Xtr.size(0))
+    
+    train_losses = []
+    val_losses = []
+    
     for e in range(epochs):
+        # Training
+        probe.train()
+        epoch_train_loss = 0.0
+        num_batches = 0
+        
         perm = torch.randperm(Xtr.size(0), device=device)
         for i in range(0, Xtr.size(0), bs):
             idx = perm[i:i+bs]
             logits = probe(Xtr[idx])
             loss = ce(logits, ytr[idx])
-            opt.zero_grad(set_to_none=True); loss.backward(); opt.step()
-    probe.eval(); return probe
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            opt.step()
+            epoch_train_loss += loss.item()
+            num_batches += 1
+        
+        avg_train_loss = epoch_train_loss / num_batches
+        train_losses.append(avg_train_loss)
+        
+        # Validation (if provided)
+        if Xval is not None and yval is not None:
+            probe.eval()
+            with torch.no_grad():
+                val_logits = probe(Xval)
+                val_loss = ce(val_logits, yval).item()
+                val_losses.append(val_loss)
+            print(f"Epoch {e+1}/{epochs} - Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}")
+        else:
+            print(f"Epoch {e+1}/{epochs} - Train Loss: {avg_train_loss:.4f}")
+    
+    probe.eval()
+    
+    # Return probe and loss history
+    loss_history = {"train_losses": train_losses}
+    if val_losses:
+        loss_history["val_losses"] = val_losses
+    
+    return probe, loss_history
 
 # ----------------------------
 # Backbones: feature extraction
@@ -302,7 +337,11 @@ def is_vit_clip(model) -> bool:
     return isinstance(model, CLIPModel) and hasattr(model, "vision_model") and hasattr(model.vision_model, "embeddings")
 
 def is_custom_resnet(model) -> bool:
-    return any(cls is not None and isinstance(model, cls) for cls in [ResNet18CLIP, DenseNet121CLIP, VGG11CLIP, SmallResNetCLIP, TinyResNetCLIP])
+    return any(cls is not None and isinstance(model, cls) for cls in [ResNet18CLIP, VGG11CLIP, SmallResNetCLIP, TinyResNetCLIP])
+
+def is_custom_densenet(model) -> bool:
+    """Check if model is a DenseNet-based custom model"""
+    return DenseNet121CLIP is not None and isinstance(model, DenseNet121CLIP)
 
 def vit_extract_layers(model: CLIPModel, pixel_values: torch.Tensor, target_blocks: List[int]) -> Dict[str, torch.Tensor]:
     """
@@ -369,6 +408,49 @@ def resnet_register_hooks(backbone, wanted: List[str]):
         if n in wanted:
             handles.append(m.register_forward_hook(hook(n)))
     return feats, handles
+
+def densenet_register_hooks(backbone, wanted: List[str]):
+    """Register hooks for DenseNet layers"""
+    feats = {}
+    handles = []
+    def hook(name):
+        def _fn(m, inp, out): feats[name] = out.detach()
+        return _fn
+    
+    # DenseNet121 structure: features.denseblock1, features.transition1, etc.
+    for name, module in backbone.named_modules():
+        if any(w in name for w in wanted):
+            # Match the requested layer names to actual module names
+            for w in wanted:
+                if w in name and name.endswith(w):
+                    handles.append(module.register_forward_hook(hook(w)))
+                    break
+    return feats, handles
+
+def vit_forward_collect(model, pixel_values, stages: List[str]):
+    """
+    For custom ResNet/DenseNet wrappers: model.vision_model.backbone is torchvision model
+    """
+    backbone = None
+    if hasattr(model, "vision_model") and hasattr(model.vision_model, "backbone"):
+        backbone = model.vision_model.backbone
+    elif hasattr(model, "vision_model") and isinstance(model.vision_model, nn.Module):
+        # try to find a torchvision-like backbone inside
+        backbone = getattr(model.vision_model, "backbone", None)
+        if backbone is None:
+            backbone = model.vision_model
+    if backbone is None:
+        raise RuntimeError("Cannot locate backbone for hooks.")
+    
+    # Use DenseNet-specific collection for DenseNet models
+    if is_custom_densenet(model):
+        return densenet_forward_collect(model, pixel_values, stages)
+    
+    feats, handles = resnet_register_hooks(backbone, stages)
+    # forward through vision_model to trigger hooks
+    _ = model.get_image_features(pixel_values=pixel_values) if hasattr(model, "get_image_features") else model(pixel_values=pixel_values, return_loss=False)
+    for h in handles: h.remove()
+    return feats  # dict stage -> [B,C,H,W]
 
 def resnet_forward_collect(model, pixel_values, stages: List[str]):
     """
@@ -557,6 +639,8 @@ def run_probes(Xtr, ytr, Xev, yev, probes: List[str], device="cpu",
     Xtr_t = torch.from_numpy(Xtr).to(device).float()
     ytr_t = torch.from_numpy(ytr).to(device).long()
     Xev_t = torch.from_numpy(Xev).to(device).float()
+    yev_t = torch.from_numpy(yev).to(device).long()
+    
     with torch.no_grad():
         # common normalization helps for MLP/RFF
         mu, sigma = Xtr_t.mean(dim=0, keepdim=True), Xtr_t.std(dim=0, keepdim=True).clamp_min(1e-6)
@@ -565,21 +649,27 @@ def run_probes(Xtr, ytr, Xev, yev, probes: List[str], device="cpu",
 
     if "linear" in probes:
         lin = LinearProbe(Xtr_n.shape[1]).to(device)
-        lin = train_probe_head(Xtr_n, ytr_t, lin, epochs=epochs, lr=lr, wd=wd, device=device)
+        lin, loss_hist = train_probe_head(Xtr_n, ytr_t, lin, epochs=epochs, lr=lr, wd=wd, device=device, Xval=Xev_n, yval=yev_t)
         with torch.no_grad(): s = lin(Xev_n).softmax(dim=1)[:,1].cpu().numpy()
-        res["linear"] = evaluate_scores(yev, s)
+        metrics = evaluate_scores(yev, s)
+        metrics.update(loss_hist)
+        res["linear"] = metrics
 
     if "mlp" in probes:
         mlp = MLPProbe(Xtr_n.shape[1]).to(device)
-        mlp = train_probe_head(Xtr_n, ytr_t, mlp, epochs=epochs, lr=lr, wd=wd, device=device)
+        mlp, loss_hist = train_probe_head(Xtr_n, ytr_t, mlp, epochs=epochs, lr=lr, wd=wd, device=device, Xval=Xev_n, yval=yev_t)
         with torch.no_grad(): s = mlp(Xev_n).softmax(dim=1)[:,1].cpu().numpy()
-        res["mlp"] = evaluate_scores(yev, s)
+        metrics = evaluate_scores(yev, s)
+        metrics.update(loss_hist)
+        res["mlp"] = metrics
 
     if use_rff or ("rff" in probes):
         rff = RFFProbe(Xtr_n.shape[1], num_features=rff_dim, gamma=rff_gamma, seed=seed).to(device)
-        rff = train_probe_head(Xtr_n, ytr_t, rff, epochs=epochs, lr=lr, wd=wd, device=device)
+        rff, loss_hist = train_probe_head(Xtr_n, ytr_t, rff, epochs=epochs, lr=lr, wd=wd, device=device, Xval=Xev_n, yval=yev_t)
         with torch.no_grad(): s = rff(Xev_n).softmax(dim=1)[:,1].cpu().numpy()
-        res["rff"] = evaluate_scores(yev, s)
+        metrics = evaluate_scores(yev, s)
+        metrics.update(loss_hist)
+        res["rff"] = metrics
 
     return res
 
@@ -723,13 +813,15 @@ def parse_args():
     ap.add_argument("--task", type=str, choices=["heart","triangle","both"], default="both")
     ap.add_argument("--splits", nargs=2, metavar=("TRAIN","EVAL"), default=["train","val"])
 
-    ap.add_argument("--backbone", type=str, choices=["auto","vit","resnet"], default="auto")
+    ap.add_argument("--backbone", type=str, choices=["auto","vit","resnet","densenet"], default="auto")
 
     ap.add_argument("--vit_layers", type=int, nargs="+", default=[2,4,6,8,10,12])
     ap.add_argument("--resnet_stages", type=str, nargs="+", default=["layer1","layer2","layer3","layer4"])
+    ap.add_argument("--densenet_stages", type=str, nargs="+", default=["denseblock1","denseblock2","denseblock3","denseblock4"])
 
     ap.add_argument("--readouts_vit", type=str, nargs="+", default=["cls","mean_tokens","region"])
     ap.add_argument("--readouts_resnet", type=str, nargs="+", default=["gap","gmp","region"])
+    ap.add_argument("--readouts_densenet", type=str, nargs="+", default=["gap","gmp","region"])
 
     ap.add_argument("--probes", type=str, nargs="+", default=["linear","mlp"], help="include 'rff' to enable RFF")
     ap.add_argument("--use_rff", action="store_true")
@@ -764,12 +856,19 @@ def main():
     # Backbone selection
     bk = args.backbone
     if bk == "auto":
-        bk = "vit" if is_vit_clip(model) else "resnet"
+        if is_vit_clip(model):
+            bk = "vit"
+        elif is_custom_densenet(model):
+            bk = "densenet"
+        else:
+            bk = "resnet"
     print(f"Backbone detected: {bk.upper()}")
 
     # Build feature spec
     if bk == "vit":
         spec = FeatureSpec(kind="vit", layers=args.vit_layers, readouts=args.readouts_vit)
+    elif bk == "densenet":
+        spec = FeatureSpec(kind="resnet", layers=args.densenet_stages, readouts=args.readouts_densenet)
     else:
         spec = FeatureSpec(kind="resnet", layers=args.resnet_stages, readouts=args.readouts_resnet)
 
