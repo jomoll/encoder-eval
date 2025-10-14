@@ -232,7 +232,6 @@ def build_datasets(dataset_id: str,
         if args.findings:
             is_batched = isinstance(examples["findings_section"], list)
             captions = examples["findings_section"] if is_batched else [examples["findings_section"]]
-            print("using findings")
         else:
             is_batched = isinstance(examples["impression_section"], list)
             captions = examples["impression_section"] if is_batched else [examples["impression_section"]]
@@ -1272,7 +1271,7 @@ def parse_args():
     ap.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32")
     ap.add_argument("--output_dir", type=str, default="./outputs/ckpt_clip_modes")
 
-    ap.add_argument("--epochs", type=int, default=10)
+    ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--batch_size", type=int, default=256)
     ap.add_argument("--eval_batch_size", type=int, default=None)
     ap.add_argument("--lr", type=float, default=5e-5)
