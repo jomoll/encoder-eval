@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
+from torch.optim.lr_scheduler import LinearLR
 
 from tqdm import tqdm
 from datasets import load_dataset
@@ -17,6 +18,7 @@ from sklearn.metrics import (
     roc_auc_score, balanced_accuracy_score, f1_score,
     roc_curve, confusion_matrix, accuracy_score
 )
+from sklearn.utils.class_weight import compute_class_weight
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]
@@ -34,12 +36,12 @@ def parse_args():
     p.add_argument("--model", default="vit_base_patch16_224", help="timm backbone name used during pretraining")
     p.add_argument("--ckpt", required=True, help="path to saved backbone state_dict, e.g. epoch_099_dino_backbone.pt")
     p.add_argument("--img_size", type=int, default=224)
-    p.add_argument("--batch_size", type=int, default=128)
+    p.add_argument("--batch_size", type=int, default=512)
     p.add_argument("--workers", type=int, default=8)
     p.add_argument("--probe", choices=["linear", "knn"], default="linear")
-    p.add_argument("--probe_epochs", type=int, default=100)
-    p.add_argument("--lr", type=float, default=1e-4)
-    p.add_argument("--wd", type=float, default=0.001)
+    p.add_argument("--probe_epochs", type=int, default=500)
+    p.add_argument("--lr", type=float, default=1e-2)
+    p.add_argument("--wd", type=float, default=1e-4)
     p.add_argument("--k", type=int, default=5, help="k for kNN")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--out", default="")
@@ -163,35 +165,91 @@ def build_transform(img_size, mode):
 def load_backbone(mode, model_name, ckpt_path, device):
     if model_name is None:
         if mode == "mae":
-            model_name = "vit_base_patch16_224"
+            model_name = "vit_base_patch16_224"  # Default, but MAE uses custom config
         elif mode == "simclr":
             model_name = "resnet50"
         else:  # dino
             model_name = "vit_small_patch16_224"
     
     if mode == "mae":
-        from train_ssl import MAEWrapper
-        model = MAEWrapper(model_name=model_name, img_size=224)
-        backbone = model.backbone()
+        # Load MAE model directly from train_mae.py (matching eval_mae.py)
+        from train_mae import MAE
+        ckpt = torch.load(ckpt_path, map_location='cpu')
+        
+        # Get model args from checkpoint
+        if 'args' in ckpt:
+            model_args = ckpt['args']
+            model = MAE(
+                img_size=model_args.get('img_size', 224),
+                patch_size=model_args.get('patch_size', 16),
+                in_chans=1,  # Grayscale
+                encoder_dim=model_args.get('encoder_dim', 768),
+                encoder_depth=model_args.get('encoder_depth', 12),
+                encoder_heads=model_args.get('encoder_heads', 12),
+                decoder_dim=model_args.get('decoder_dim', 512),
+                decoder_depth=model_args.get('decoder_depth', 8),
+                decoder_heads=model_args.get('decoder_heads', 16),
+                mlp_ratio=model_args.get('mlp_ratio', 4.0),
+            )
+        else:
+            # Default MAE-Base config for grayscale
+            model = MAE(in_chans=1)
+        
+        model.load_state_dict(ckpt['model'])
+        model.to(device).eval()
+        
+        # Freeze all parameters
+        for p in model.parameters():
+            p.requires_grad_(False)
+        
+        # Define a backbone wrapper for MAE encoder (to match backbone(x) interface)
+        class MAEBackbone(nn.Module):
+            def __init__(self, mae_model):
+                super().__init__()
+                self.mae = mae_model
+            
+            def forward(self, x):
+                # Manual forward through MAE encoder (matching eval_mae.py)
+                x = self.mae.patch_embed(x)
+                B, N, C = x.shape
+                x = x + self.mae.pos_embed[:, 1:, :]
+                cls_tokens = self.mae.cls_token.expand(B, -1, -1)
+                x = torch.cat([cls_tokens, x], dim=1)
+                x = x + self.mae.pos_embed[:, :x.size(1), :]
+                for blk in self.mae.encoder_blocks:
+                    x = blk(x)
+                x = self.mae.encoder_norm(x)
+                return x[:, 0]  # CLS token as feature
+        
+        backbone = MAEBackbone(model)
+        feat_dim = model.cls_token.shape[-1]  # Use cls_token dim as feat_dim
+    
     elif mode == "simclr":
         from train_ssl import SimCLRModel
         import timm
-        # For SimCLR, we only need the backbone part
         backbone = timm.create_model(model_name, pretrained=False, num_classes=0)
+        sd = torch.load(ckpt_path, map_location="cpu")
+        backbone.load_state_dict(sd, strict=True)
+        backbone.eval().to(device)
+        feat_dim = getattr(backbone, "num_features", None)
+        if feat_dim is None:
+            with torch.no_grad():
+                dummy_input = torch.randn(1, 3, 224, 224).to(device)
+                dummy_output = backbone(dummy_input)
+                feat_dim = dummy_output.shape[-1]
+    
     else:  # dino
         import timm
         backbone = timm.create_model(model_name, pretrained=False, num_classes=0)
-    
-    sd = torch.load(ckpt_path, map_location="cpu")
-    backbone.load_state_dict(sd, strict=True)
-    backbone.eval().to(device)
-    
-    feat_dim = getattr(backbone, "num_features", None)
-    if feat_dim is None:
-        with torch.no_grad():
-            dummy_input = torch.randn(1, 3, 224, 224).to(device)
-            dummy_output = backbone(dummy_input)
-            feat_dim = dummy_output.shape[-1]
+        sd = torch.load(ckpt_path, map_location="cpu")
+        backbone.load_state_dict(sd, strict=True)
+        backbone.eval().to(device)
+        feat_dim = getattr(backbone, "num_features", None)
+        if feat_dim is None:
+            with torch.no_grad():
+                dummy_input = torch.randn(1, 3, 224, 224).to(device)
+                dummy_output = backbone(dummy_input)
+                feat_dim = dummy_output.shape[-1]
     
     return backbone, feat_dim
 
@@ -237,7 +295,16 @@ class LinearProbe(nn.Module):
 def train_linear_probe(train_feats, train_labels, val_feats, val_labels, in_dim, epochs, lr, wd, device):
     model = LinearProbe(in_dim, num_classes=2).to(device)
     opt = optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=wd)
-    criterion = nn.CrossEntropyLoss()
+    
+    # Add linear LR scheduler: start at lr, end at lr/10 (e.g., 1e-2 to 1e-3)
+    scheduler = LinearLR(opt, start_factor=1.0, end_factor=0.1, total_iters=epochs)
+    
+    # Compute class weights for imbalance
+    classes = np.unique(train_labels.cpu().numpy())
+    weights = compute_class_weight('balanced', classes=classes, y=train_labels.cpu().numpy())
+    weights = torch.tensor(weights, dtype=torch.float).to(device)
+    criterion = nn.CrossEntropyLoss(weight=weights)
+    
     train_feats = train_feats.to(device); train_labels = train_labels.to(device)
     val_feats = val_feats.to(device); val_labels = val_labels.to(device)
     
@@ -248,11 +315,15 @@ def train_linear_probe(train_feats, train_labels, val_feats, val_labels, in_dim,
         loss = criterion(logits, train_labels)
         opt.zero_grad(set_to_none=True); loss.backward(); opt.step()
         
+        # Step the scheduler after each epoch
+        scheduler.step()
+        
         with torch.no_grad():
             model.eval()
             pred = model(val_feats).argmax(1)
             acc = (pred == val_labels).float().mean().item()
-        print(f"[probe] epoch {ep:02d} loss {loss.item():.4f} acc {acc:.4f}")
+        current_lr = opt.param_groups[0]['lr']
+        print(f"[probe] epoch {ep:02d} loss {loss.item():.4f} acc {acc:.4f} lr {current_lr:.2e}")
         best_acc = max(best_acc, acc)
     
     return model, best_acc
@@ -405,10 +476,13 @@ def main():
     # Determine mode from checkpoint filename
     if "mae" in args.ckpt.lower():
         args.mode = "mae"
+        print("Assuming MAE mode based on checkpoint name.")
     elif "simclr" in args.ckpt.lower():
         args.mode = "simclr"
+        print("Assuming SimCLR mode based on checkpoint name.")
     else:
         args.mode = "dino"
+        print("Assuming DINO mode based on checkpoint name.")
     
     # Load backbone
     backbone, feat_dim = load_backbone(args.mode, args.model, args.ckpt, device)
