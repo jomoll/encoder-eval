@@ -15,9 +15,9 @@ def collect_auc_data(base_path):
     triangle_aucs = []
     marker_aucs = []
     effusion_aucs = []
-    cardio_aucs = []
+    cardiomegaly_aucs = []
     # Updated patterns to handle different prefixes (e.g., simclr_epoch001, dino_epoch001)
-    epoch_pattern = re.compile(r'epoch_(\d+)_task-both$')  # Original for "epoch_1_task-both"
+    epoch_pattern = re.compile(r'epoch_(\d+)_task-(both|all)$')  # Original for "epoch_1_task-both"
     epoch_pattern2 = re.compile(r'epoch_(\d+)_task-both_probe-linear$') 
     epoch_pattern3 = re.compile(r'^(simclr|dino|mae)_epoch(\d+)$')  # New: matches "simclr_epoch_001", etc.
     
@@ -121,11 +121,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--path", type=str, required=False, default="results_densenet", help="Path to the probe output directory")
     # Path to the probe output directory
-    base_path = "/home/moll/encoder-eval/outputs_new/"
+    base_path = "/home/moll/encoder-eval/outputs/"
     base_path = base_path + ap.parse_args().path
     print(f"Using base path: {base_path}")
     print("Collecting AUC data from epoch folders...")
-    epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs = collect_auc_data(base_path)
+    epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs, cardiomegaly_aucs = collect_auc_data(base_path)
     
     if not epochs:
         print("No epoch data found!")
