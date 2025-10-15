@@ -15,6 +15,8 @@ from tqdm import tqdm
 import numpy as np
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, roc_auc_score, balanced_accuracy_score, f1_score
+from sklearn.utils.class_weight import compute_class_weight
+from torch.optim.lr_scheduler import LinearLR
 
 # Load the MAE model from train_mae.py
 import sys
@@ -23,14 +25,15 @@ from train_mae import MAE
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument('--mae_checkpoint', type=str, required=True, help='Path to MAE checkpoint')
-    p.add_argument('--dataset_id', type=str, default='data/silent-heart-dataset')
+    p.add_argument('--ckpt', type=str, required=True, help='Path to MAE checkpoint')
+    p.add_argument('--data', type=str, default='data/silent-heart-dataset')
     p.add_argument('--split_train', type=str, default='train')
     p.add_argument('--split_eval', type=str, default='val') 
-    p.add_argument('--batch_size', type=int, default=256)
-    p.add_argument('--probe_epochs', type=int, default=100)
-    p.add_argument('--probe_lr', type=float, default=1e-3)
-    p.add_argument('--output_dir', type=str, default='./mae_probe_results')
+    p.add_argument('--batch_size', type=int, default=512)
+    p.add_argument('--epochs', type=int, default=500)
+    p.add_argument('--lr', type=float, default=1e-2)
+    p.add_argument('--wd', type=float, default=1e-4, help='Weight decay for optimizer')
+    p.add_argument('--out', type=str, default='./mae_probe_results')
     return p.parse_args()
 
 def load_mae_model(checkpoint_path, device):
@@ -111,8 +114,8 @@ def extract_heart_label(example):
         return 0
 
 class MAEDataset:
-    def __init__(self, dataset_id, split, img_size=224):
-        self.dataset = load_dataset(dataset_id, split=split)
+    def __init__(self, data, split, img_size=224):
+        self.dataset = load_dataset(data, split=split)
         # Transform for grayscale images (single channel)
         self.transform = T.Compose([
             T.Resize(img_size),
@@ -168,8 +171,9 @@ def get_mae_embeddings(model, dataloader, device):
                 x = blk(x)
             x = model.encoder_norm(x)
             
-            # Use cls token as representation
-            cls_embeddings = x[:, 0]  # [B, encoder_dim]
+            # Use mean of patch embeddings as representation (exclude CLS token)
+            patch_embeddings = x[:, 1:]  # [B, N, C]
+            cls_embeddings = patch_embeddings.mean(dim=1)  # [B, C]
             
             embeddings.append(cls_embeddings.cpu())
             heart_labels.extend(batch_hearts)
@@ -181,12 +185,20 @@ def get_mae_embeddings(model, dataloader, device):
     
     return embeddings, heart_labels, triangle_labels
 
-def train_probe(X_train, y_train, X_val, y_val, epochs=50, lr=1e-3, device='cpu'):
+def train_probe(X_train, y_train, X_val, y_val, epochs=50, lr=1e-3, wd=1e-4, device='cpu'):
     """Train linear probe"""
     input_dim = X_train.shape[1]
     probe = LinearProbe(input_dim).to(device)
-    optimizer = torch.optim.Adam(probe.parameters(), lr=lr)
-    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(probe.parameters(), lr=lr, weight_decay=wd)
+    
+    # Add linear LR scheduler: start at lr, end at lr/10 (e.g., 1e-2 to 1e-3)
+    scheduler = LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=epochs)
+    
+    # Compute class weights for imbalance
+    classes = np.unique(y_train.cpu().numpy())
+    weights = compute_class_weight('balanced', classes=classes, y=y_train.cpu().numpy())
+    weights = torch.tensor(weights, dtype=torch.float).to(device)
+    criterion = nn.CrossEntropyLoss(weight=weights)
     
     X_train = X_train.to(device)
     y_train = y_train.to(device)
@@ -203,6 +215,9 @@ def train_probe(X_train, y_train, X_val, y_val, epochs=50, lr=1e-3, device='cpu'
         loss.backward()
         optimizer.step()
         
+        # Step the scheduler after each epoch
+        scheduler.step()
+        
         # Validate
         if epoch % 10 == 0:
             probe.eval()
@@ -212,7 +227,8 @@ def train_probe(X_train, y_train, X_val, y_val, epochs=50, lr=1e-3, device='cpu'
                 val_acc = (val_pred == y_val).float().mean().item()
                 if val_acc > best_val_acc:
                     best_val_acc = val_acc
-                print(f"Epoch {epoch}: Train Loss {loss:.4f}, Val Acc {val_acc:.4f}")
+                current_lr = optimizer.param_groups[0]['lr']
+                print(f"Epoch {epoch}: Train Loss {loss:.4f}, Val Acc {val_acc:.4f}, LR {current_lr:.2e}")
     
     return probe
 
@@ -233,7 +249,7 @@ def evaluate_probe(probe, X_test, y_test, device='cpu'):
         'accuracy': accuracy_score(y_true, preds),
         'balanced_accuracy': balanced_accuracy_score(y_true, preds),
         'f1': f1_score(y_true, preds),
-        'eval_auc': roc_auc_score(y_true, probs) if len(np.unique(y_true)) > 1 else 0.0
+        'auc': roc_auc_score(y_true, probs) if len(np.unique(y_true)) > 1 else 0.0
     }
     
     return metrics
@@ -246,12 +262,12 @@ def main():
     
     # Load MAE model
     print("Loading MAE model...")
-    model = load_mae_model(args.mae_checkpoint, device)
+    model = load_mae_model(args.ckpt, device)
     
     # Load datasets
     print("Loading datasets...")
-    train_dataset = MAEDataset(args.dataset_id, args.split_train, img_size=model.img_size)
-    val_dataset = MAEDataset(args.dataset_id, args.split_eval, img_size=model.img_size)
+    train_dataset = MAEDataset(args.data, args.split_train, img_size=model.img_size)
+    val_dataset = MAEDataset(args.data, args.split_eval, img_size=model.img_size)
     
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=4)
@@ -266,11 +282,11 @@ def main():
     # Train probes
     print("Training heart probe...")
     heart_probe = train_probe(X_train, y_heart_train, X_val, y_heart_val, 
-                             epochs=args.probe_epochs, lr=args.probe_lr, device=device)
+                             epochs=args.epochs, lr=args.lr, wd=args.wd, device=device)
     
     print("Training triangle probe...")
     triangle_probe = train_probe(X_train, y_triangle_train, X_val, y_triangle_val,
-                                epochs=args.probe_epochs, lr=args.probe_lr, device=device)
+                                epochs=args.epochs, lr=args.lr, wd=args.wd, device=device)
     
     # Evaluate probes
     print("Evaluating probes...")
@@ -291,7 +307,7 @@ def main():
         print(f"{k}: {v:.4f}")
     
     # Save results
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(args.out, exist_ok=True)
     
     results = {
         'heart': heart_metrics,
@@ -302,10 +318,10 @@ def main():
         }
     }
     
-    with open(os.path.join(args.output_dir, 'metrics_both.json'), 'w') as f:
+    with open(os.path.join(args.out, 'metrics_both.json'), 'w') as f:
         json.dump(results, f, indent=2)
 
-    print(f"\nResults saved to {args.output_dir}/metrics_both.json")
+    print(f"\nResults saved to {args.out}/metrics_both.json")
 
 if __name__ == '__main__':
     main()

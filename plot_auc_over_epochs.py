@@ -17,7 +17,7 @@ def collect_auc_data(base_path):
     effusion_aucs = []
     # Updated patterns to handle different prefixes (e.g., simclr_epoch001, dino_epoch001)
     epoch_pattern = re.compile(r'epoch_(\d+)_task-both$')  # Original for "epoch_1_task-both"
-    epoch_pattern2 = re.compile(r'^epoch_(\d+)$')  # Original for "epoch_1"
+    epoch_pattern2 = re.compile(r'epoch_(\d+)_task-both_probe-linear$') 
     epoch_pattern3 = re.compile(r'^(simclr|dino|mae)_epoch(\d+)$')  # New: matches "simclr_epoch_001", etc.
     
     # Get all directories in the base path

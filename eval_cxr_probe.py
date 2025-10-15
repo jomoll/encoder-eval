@@ -312,11 +312,12 @@ def build_dataset_with_labels(dataset_id: str,
     
     # Filter out invalid samples
     def is_valid_sample(example):
-        # Invalid if marker_present is False or pleural_effusion_confidence is 0
+        # Invalid if marker_present is False or pleural_effusion_confidence is 0 or cardiomegaly_confidence is 0
         marker_present = example.get("marker_present", True)  # default True if missing
         pleural_effusion_confidence = example.get("pleural_effusion_confidence", 1)  # default 1 if missing
+        cardiomegaly_confidence = example.get("cardiomegaly_confidence", 1)  # default 1 if missing
         
-        return marker_present != False and pleural_effusion_confidence != 0
+        return marker_present != False and pleural_effusion_confidence != 0 and cardiomegaly_confidence != 0
     
     # Count samples before filtering
     original_count = len(ds)
@@ -349,6 +350,11 @@ def build_dataset_with_labels(dataset_id: str,
                 return int(ex["pleural_effusion_present"])
             else:
                 raise ValueError("Could not resolve 'pleural_effusion_present' field for pleural effusion task")
+        elif task == "cardiomegaly_present":
+            if "cardiomegaly_present" in ex:
+                return int(ex["cardiomegaly_present"])
+            else:
+                raise ValueError("Could not resolve 'cardiomegaly_present' field for cardiomegaly task")
         else:
             raise ValueError(f"Unknown task: {task}")
 
@@ -501,7 +507,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset_id", type=str, default="data/mimic-cxr-combined-annotations")
     ap.add_argument("--model_path", type=str, required=True, help="Path or HF id for the fine-tuned model")
-    ap.add_argument("--task", type=str, choices=["marker", "pleural_effusion", "both"], default="both")
+    ap.add_argument("--task", type=str, choices=["marker", "pleural_effusion", "cardiomegaly_present", "all"], default="all")
     ap.add_argument("--split_train", type=str, default="train")
     ap.add_argument("--split_eval", type=str, default="val")
     ap.add_argument("--batch_size", type=int, default=512)
@@ -538,8 +544,8 @@ def main():
 
     # Determine which tasks to run
     tasks_to_run = []
-    if args.task == "both":
-        tasks_to_run = ["marker", "pleural_effusion"]
+    if args.task == "all":
+        tasks_to_run = ["marker", "pleural_effusion", "cardiomegaly_present"]
     else:
         tasks_to_run = [args.task]
 
@@ -615,7 +621,7 @@ def main():
         # Store results for this task
         task_results = {
             "task": task,
-            "eval_auc": float(auc),
+            "auc": float(auc),
             "eval_acc_default@0.5": float(acc_default),
             "eval_acc_argmax": float(acc_argmax),
             "eval_acc_best": float(acc_best),
