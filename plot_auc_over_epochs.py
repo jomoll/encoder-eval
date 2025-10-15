@@ -15,6 +15,7 @@ def collect_auc_data(base_path):
     triangle_aucs = []
     marker_aucs = []
     effusion_aucs = []
+    cardio_aucs = []
     # Updated patterns to handle different prefixes (e.g., simclr_epoch001, dino_epoch001)
     epoch_pattern = re.compile(r'epoch_(\d+)_task-both$')  # Original for "epoch_1_task-both"
     epoch_pattern2 = re.compile(r'epoch_(\d+)_task-both_probe-linear$') 
@@ -54,10 +55,12 @@ def collect_auc_data(base_path):
                     marker_aucs.append(0.0)
                     effusion_aucs.append(0.0)
                 except:    
-                    marker_auc = data['marker']['eval_auc']
-                    effusion_auc = data['pleural_effusion']['eval_auc']
+                    marker_auc = data['marker']['auc']
+                    effusion_auc = data['pleural_effusion']['auc']
+                    cardiomegaly_auc = data['cardiomegaly_present']['auc']
                     marker_aucs.append(marker_auc)
                     effusion_aucs.append(effusion_auc)
+                    cardiomegaly_aucs.append(cardiomegaly_auc)
                     heart_aucs.append(0.0)
                     triangle_aucs.append(0.0)
                 
@@ -67,12 +70,12 @@ def collect_auc_data(base_path):
                 print(f"Error reading {metrics_file}: {e}")
 
     # Sort by epoch number
-    sorted_data = sorted(zip(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs))
-    epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs = zip(*sorted_data) if sorted_data else ([], [], [], [], [])
+    sorted_data = sorted(zip(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs, cardiomegaly_aucs))
+    epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs, cardiomegaly_aucs = zip(*sorted_data) if sorted_data else ([], [], [], [], [], [])
 
-    return list(epochs), list(heart_aucs), list(triangle_aucs), list(marker_aucs), list(effusion_aucs)
+    return list(epochs), list(heart_aucs), list(triangle_aucs), list(marker_aucs), list(effusion_aucs), list(cardiomegaly_aucs)
 
-def plot_auc_comparison(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs, save_path=None):
+def plot_auc_comparison(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs, cardiomegaly_aucs, save_path=None):
     """
     Create a plot comparing Heart and Triangle AUCs over epochs
     """
@@ -87,6 +90,7 @@ def plot_auc_comparison(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion
     else:
         plt.plot(epochs, marker_aucs, 'o-', label='Laterality marker AUC', linewidth=2, markersize=6, color='red', alpha=0.8)
         plt.plot(epochs, effusion_aucs, 's-', label='Pleural Effusion AUC', linewidth=2, markersize=6, color='blue', alpha=0.8)
+        plt.plot(epochs, cardiomegaly_aucs, '^-', label='Cardiomegaly AUC', linewidth=2, markersize=6, color='green', alpha=0.8)
         plt.title('AUC Performance Comparison: Chest X-ray Tasks', fontsize=16, fontweight='bold')
 
     # Customize the plot
@@ -132,10 +136,11 @@ def main():
     print(f"Triangle AUC range: {min(triangle_aucs):.4f} - {max(triangle_aucs):.4f}")
     print(f"Marker AUC range: {min(marker_aucs):.4f} - {max(marker_aucs):.4f}")
     print(f"Effusion AUC range: {min(effusion_aucs):.4f} - {max(effusion_aucs):.4f}")
+    print(f"Cardiomegaly AUC range: {min(cardiomegaly_aucs):.4f} - {max(cardiomegaly_aucs):.4f}")
 
     # Create the plot
     save_path = "/home/moll/encoder-eval/auc_comparison_plot.png"
-    plot_auc_comparison(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs, save_path)
+    plot_auc_comparison(epochs, heart_aucs, triangle_aucs, marker_aucs, effusion_aucs, cardiomegaly_aucs, save_path)
 
 if __name__ == "__main__":
     main()
