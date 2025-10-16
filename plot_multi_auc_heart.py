@@ -15,19 +15,25 @@ def collect_auc_data(base_path):
     epochs = []
     heart_aucs = []
     
-    # Pattern to match epoch folders
-    epoch_pattern = re.compile(r'epoch_(\d+)_task-both$')
+    # Updated patterns to handle different prefixes (e.g., simclr_epoch001, dino_epoch001)
+    epoch_pattern = re.compile(r'epoch_(\d+)_task-both$')  # Original for "epoch_1_task-both"
+    epoch_pattern3 = re.compile(r'^(simclr|dino|mae)_epoch_(\d+)$')  # New: matches "simclr_epoch_001", etc.
     
     # Get all directories in the base path
     for folder_name in os.listdir(base_path):
         folder_path = os.path.join(base_path, folder_name)
         
-        # Check if it's a directory and matches the epoch pattern
-        if os.path.isdir(folder_path) and epoch_pattern.match(folder_name):
-            # Extract epoch number
-            match = epoch_pattern.match(folder_name)
-            epoch_num = int(match.group(1))
-            
+        # Check if it's a directory and matches any epoch pattern
+        epoch_num = None
+        if os.path.isdir(folder_path):
+            match = epoch_pattern.match(folder_name) or epoch_pattern3.match(folder_name)
+            if match:
+                # Extract epoch number (group 1 for first two patterns, group 2 for the third)
+                if epoch_pattern3.match(folder_name):
+                    epoch_num = int(match.group(2))  # For "simclr_epoch_001", group 2 is "001"
+                else:
+                    epoch_num = int(match.group(1))  # For others, group 1 is the epoch
+        if epoch_num is not None:
             # Check for metrics files
             metrics_file = None
             if os.path.exists(os.path.join(folder_path, 'all_metrics.json')):
@@ -41,8 +47,8 @@ def collect_auc_data(base_path):
                         data = json.load(f)
                     
                     # Extract heart AUC if it exists
-                    if 'heart' in data and 'eval_auc' in data['heart']:
-                        heart_auc = data['heart']['eval_auc']
+                    if 'heart' in data and 'auc' in data['heart']:  # Adjusted key to match your eval output
+                        heart_auc = data['heart']['auc']
                         epochs.append(epoch_num)
                         heart_aucs.append(heart_auc)
                         
@@ -72,9 +78,11 @@ def collect_multi_folder_data(parent_path):
         folder_path = os.path.join(parent_path, folder_name)
         
         if os.path.isdir(folder_path):
-            # Check if this folder contains epoch subdirectories
+            # Check if this folder contains epoch subdirectories (updated to include new patterns)
             has_epochs = any(
-                re.match(r'epoch_(\d+)_task-both$', subdir) 
+                re.match(r'epoch_(\d+)_task-both$', subdir) or 
+                re.match(r'^epoch_(\d+)$', subdir) or 
+                re.match(r'^(simclr|dino|mae)_epoch_(\d+)$', subdir)
                 for subdir in os.listdir(folder_path) 
                 if os.path.isdir(os.path.join(folder_path, subdir))
             )
@@ -149,7 +157,7 @@ def main():
                        help="Path to save the plot")
     
     args = parser.parse_args()
-    parent_path = "/home/moll/encoder-eval/outputs_new/" + args.path
+    parent_path = "/home/moll/encoder-eval/outputs/" + args.path
     print(f"Using parent path: {parent_path}")
     print("Collecting heart AUC data from multiple folders...")
     
