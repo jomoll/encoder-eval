@@ -24,7 +24,6 @@ def collect_auc_data(base_path):
     # Get all directories in the base path
     for folder_name in os.listdir(base_path):
         folder_path = os.path.join(base_path, folder_name)
-        
         # Check if it's a directory and matches any epoch pattern
         epoch_num = None
         if os.path.isdir(folder_path):
@@ -42,7 +41,6 @@ def collect_auc_data(base_path):
                 metrics_file = os.path.join(folder_path, 'all_metrics.json')
             elif os.path.exists(os.path.join(folder_path, 'metrics_both.json')):
                 metrics_file = os.path.join(folder_path, 'metrics_both.json')
-            
             try:
                 with open(metrics_file, 'r') as f:
                     data = json.load(f)
@@ -54,6 +52,7 @@ def collect_auc_data(base_path):
                     triangle_aucs.append(triangle_auc)
                     marker_aucs.append(0.0)
                     effusion_aucs.append(0.0)
+                    cardiomegaly_aucs.append(0.0)
                 except:    
                     marker_auc = data['marker']['auc']
                     effusion_auc = data['pleural_effusion']['auc']
